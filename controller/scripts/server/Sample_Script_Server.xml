@@ -1,0 +1,209 @@
+<TEST_FLOW>
+
+    <TEST TYPE = 'Normal' TEST-SUITE = 'Basic Call Flow' TEST-SHEET = 'Sanity' TEST-ID = 'SS-1' 
+                DESCRIPTION = ' 401 for First Registration,
+                                            Successful Second Registration,
+                                            Successful De-Registration' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='401_REGISTER' >
+            <ADD_MSG>
+                <HEADERS>
+                    <header name='www-authenticate' value='Digest'>
+                        <param name='realm' value='atlanta.com' />
+                        <param name='domain' value='sip:boxesbybob.com' />
+                        <param name='qop' value='auth' />
+                        <param name='nonce' value='f84f1cec41e6cbe59c88d359' />
+                        <param name='opaque' value='NULL' />
+                        <param name='stale' value='FALSE' />
+                        <param name='algorithm' value='MD5' />
+                    </header>
+                </HEADERS>
+            </ADD_MSG>
+        </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Normal' TEST-SUITE = 'Basic Call Flow' TEST-SHEET = 'Sanity' TEST-ID = 'SS-2' 
+                DESCRIPTION = ' Successful Registration,
+                                            Session Establishment by Server Sending INVITE,
+                                            Session Termination by Server Receiving BYE,
+                                            Successful De-registration' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+        <ACTION SEND='req' value='INVITE' >
+            <ADD_MSG>
+                <CONTENT>
+                    <SDP_BODY>
+                        <header name='content-type' value='application/sdp' />
+                        <sdp name='v' value='0' />
+                        <sdp name='o' value='sip:UserA@127.0.0.1 234435 234435 IN IP4 127.0.0.1' />
+                        <sdp name='s' value='peer Session SDP' />
+                        <sdp name='c' value='IN IP4 127.0.0.1' />
+                        <sdp name='t' value='0 0' />
+                        <sdp name='m' value='audio 5000 RTP/AVP 0 8 97 3 5 4' />
+                        <sdp name='a' value='rtpmap:4 G723/8000' />
+                        <sdp name='a' value='fmtp:4 annexa=no;bitrate=6.3' />
+                        <sdp name='m' value='video 5002 RTP/AVP 99 34 26 31' />
+                        <sdp name='a' value='rtpmap:99 H264/90000' />
+                        <sdp name='a' value='maxptime:100' />
+                        <sdp name='a' value='fmtp:99 packetization-mode=1' />
+                        <sdp name='a' value='recvonly' />
+                    </SDP_BODY>
+                </CONTENT>
+            </ADD_MSG>
+        </ACTION>
+        <ACTION RECV='res' value='200_INVITE'>
+        </ACTION>
+        <ACTION SEND='req' value='ACK' >
+        </ACTION>
+        <ACTION RECV='req' value='BYE' >
+        </ACTION>
+        <ACTION SEND='res' value='200_BYE'>
+        </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+    </TEST>
+
+
+
+    <TEST TYPE = 'Normal' TEST-SUITE = 'Basic Call Flow' TEST-SHEET = 'Sanity' TEST-ID = 'SS-3' 
+                DESCRIPTION = ' Successful Registration,
+                                            Session Establishment by Client Sending INVITE,
+                                            Session Termination by Server Sending BYE,
+                                            Successful De-registration' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+        <ACTION RECV='req' value='INVITE' >
+        </ACTION>
+        <ACTION SEND='res' value='200_INVITE'>
+            <ADD_MSG>
+                <CONTENT>
+                    <SDP_BODY>
+                        <header name='content-type' value='application/sdp' />
+                        <sdp name='v' value='0' />
+                        <sdp name='o' value='sip:UserA@127.0.0.1 234435 234435 IN IP4 127.0.0.1' />
+                        <sdp name='s' value='peer Session SDP' />
+                        <sdp name='c' value='IN IP4 127.0.0.1' />
+                        <sdp name='t' value='0 0' />
+                        <sdp name='m' value='audio 5000 RTP/AVP 0 8 97 3 5 4' />
+                        <sdp name='a' value='rtpmap:4 G723/8000' />
+                        <sdp name='a' value='fmtp:4 annexa=no;bitrate=6.3' />
+                        <sdp name='m' value='video 5002 RTP/AVP 99 34 26 31' />
+                        <sdp name='a' value='rtpmap:99 H264/90000' />
+                        <sdp name='a' value='maxptime:100' />
+                        <sdp name='a' value='fmtp:99 packetization-mode=1' />
+                        <sdp name='a' value='recvonly' />
+                    </SDP_BODY>
+                </CONTENT>
+            </ADD_MSG>
+        </ACTION>
+        <ACTION RECV='req' value='ACK' >
+        </ACTION>
+        <ACTION SEND='req' value='BYE' >
+        </ACTION>
+        <ACTION RECV='res' value='200_BYE'>
+        </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Normal' TEST-SUITE = 'Basic Call Flow' TEST-SHEET = 'Sanity' TEST-ID = 'SS-4' 
+                DESCRIPTION = ' Successful Registration,
+                                            Server Receiving INVITE,
+                                            Server Receiving CANCEL,
+                                            Successful De-registration' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+        <ACTION RECV='req' value='INVITE' >
+        </ACTION>
+        <ACTION SEND='res' value='180_INVITE'>
+        </ACTION>
+        <ACTION RECV='req' value='CANCEL' >
+        </ACTION>
+        <ACTION SEND='res' value='200_CANCEL'>
+        </ACTION>
+        <ACTION SEND='res' value='487_INVITE'>
+        </ACTION>
+         <ACTION RECV='req' value='ACK' >
+        </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Normal' TEST-SUITE = 'Basic Call Flow' TEST-SHEET = 'Sanity'  TEST-ID = 'SS-5' 
+                DESCRIPTION = ' Successful Registration,
+                                            Server Sending INVITE,
+                                            Server Sending 486_INVITE response,
+                                            Successful De-registration' >
+
+	<ACTION RECV='req' value='REGISTER'>
+	</ACTION>
+	<ACTION SEND='res' value='200_REGISTER' >
+	</ACTION>     
+	<ACTION SEND='req' value='INVITE' >
+	    <ADD_MSG>
+	        <HEADERS>   
+	            <header name='content-type' value='application/sdp' />
+	        </HEADERS>
+	        <CONTENT>
+	            <SDP_BODY>
+	                <sdp name='v' value='0' />
+	                <sdp name='o' value='sip:UserA@127.0.0.1 234435 234435 IN IP4 127.0.0.1' />
+	                <sdp name='s' value='peer Session SDP' />
+	                <sdp name='c' value='IN IP4 127.0.0.1' />
+	                <sdp name='t' value='0 0' />
+	                <sdp name='m' value='audio 5000 RTP/AVP 0 8 97 3 5 4' />
+	                <sdp name='a' value='rtpmap:4 G723/8000' />
+	                <sdp name='a' value='fmtp:4 annexa=no;bitrate=6.3' />
+	                <sdp name='m' value='video 5002 RTP/AVP 99 34 26 31' />
+	                <sdp name='a' value='rtpmap:99 H264/90000' />
+	                <sdp name='a' value='maxptime:100' />
+	                <sdp name='a' value='fmtp:99 packetization-mode=1' />
+	                <sdp name='a' value='recvonly' />
+	            </SDP_BODY>
+	        </CONTENT>
+	    </ADD_MSG> 
+	</ACTION>
+	<ACTION RECV='res' value='486_INVITE'>
+	</ACTION>
+	<ACTION SEND='req' value='ACK' >
+	</ACTION>
+	<ACTION RECV='req' value='REGISTER'>
+	</ACTION>
+	<ACTION SEND='res' value='200_REGISTER' >
+	</ACTION>
+
+    </TEST>
+
+</TEST_FLOW>
+

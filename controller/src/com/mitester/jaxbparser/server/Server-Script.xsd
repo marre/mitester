@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="TEST_FLOW">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="TEST"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="TEST">
+    <xs:complexType>
+      <xs:choice maxOccurs="unbounded">
+        <xs:element ref="ACTION"/>
+        <xs:element ref="WAIT"/>
+      </xs:choice>
+      <xs:attribute name="DESCRIPTION" use="required"/>
+      <xs:attribute name="TEST-ID" use="required" type="xs:NCName"/>
+      <xs:attribute name="TEST-SHEET"/>
+      <xs:attribute name="TEST-SUITE"/>
+      <xs:attribute name="TYPE" use="required" type="xs:NCName"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="ACTION">
+    <xs:complexType>
+         <xs:all>
+          <xs:element minOccurs="0" ref="ADD_CRCR"/>
+          <xs:element minOccurs="0" ref="ADD_CRLF"/>
+          <xs:element minOccurs="0" ref="ADD_LFLF"/>
+          <xs:element minOccurs="0" ref="ADD_MSG"/>
+          <xs:element minOccurs="0" ref="DEL_CR"/>
+          <xs:element minOccurs="0" ref="DEL_MSG"/>
+          <xs:element minOccurs="0" ref="EMPTY_MSG"/>
+          <xs:element minOccurs="0" ref="DEL_CRLF"/>
+          <xs:element minOccurs="0" ref="DEL_LF"/>
+          <xs:element minOccurs="0" ref="DUP_MSG"/>
+         </xs:all>
+      <xs:attribute name="RECV" type="xs:NCName"/>
+      <xs:attribute name="SEND" type="xs:NCName"/>
+      <xs:attribute name="count" type="xs:integer"/>
+      <xs:attribute name="value" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="ADD_CRCR">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="LINE"/>
+        <xs:element minOccurs="0" ref="HEADERS"/>
+        <xs:element minOccurs="0" ref="CONTENT"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="ADD_CRLF">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="LINE"/>
+        <xs:element minOccurs="0" ref="HEADERS"/>
+        <xs:element minOccurs="0" ref="CONTENT"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="ADD_LFLF">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="LINE"/>
+        <xs:element minOccurs="0" ref="HEADERS"/>
+        <xs:element minOccurs="0" ref="CONTENT"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="ADD_MSG">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="LINE"/>
+        <xs:element minOccurs="0" ref="HEADERS"/>
+        <xs:choice minOccurs="0">
+          <xs:element ref="CONTENT"/>
+          <xs:element ref="SIP_TORTURE"/>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="SIP_TORTURE">
+    <xs:complexType>
+      <xs:choice>
+        <xs:element ref="ORDER_AS"/>
+        <xs:sequence>
+          <xs:element ref="LINE"/>
+          <xs:element ref="HEADERS"/>
+          <xs:element ref="CONTENT"/>
+          <xs:element ref="APPEND"/>
+        </xs:sequence>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="ORDER_AS">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="LINE"/>
+        <xs:element ref="HEADERS"/>
+        <xs:element ref="CONTENT"/>
+        <xs:element ref="APPEND"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="DEL_CR">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="LINE"/>
+        <xs:element minOccurs="0" ref="HEADERS"/>
+        <xs:element minOccurs="0" ref="CONTENT"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="DEL_MSG">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="LINE"/>
+        <xs:element minOccurs="0" ref="HEADERS"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="EMPTY_MSG">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="LINE"/>
+        <xs:element minOccurs="0" ref="HEADERS"/>
+        <xs:element minOccurs="0" ref="CONTENT"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="DEL_CRLF">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="LINE"/>
+        <xs:element minOccurs="0" ref="HEADERS"/>
+        <xs:element minOccurs="0" ref="CONTENT"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="DEL_LF">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="LINE"/>
+        <xs:element minOccurs="0" ref="HEADERS"/>
+        <xs:element minOccurs="0" ref="CONTENT"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="DUP_MSG">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="LINE"/>
+        <xs:element minOccurs="0" ref="HEADERS"/>
+        <xs:element minOccurs="0" ref="CONTENT"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="WAIT">
+    <xs:complexType>
+      <xs:attribute name="unit" use="required" type="xs:NCName"/>
+      <xs:attribute name="value" use="required" type="xs:decimal"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="LINE">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="fline"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="req-line"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="status-line"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="fline">
+    <xs:complexType>
+      <xs:attribute name="count" type="xs:integer"/>
+      <xs:attribute name="name" use="required" type="xs:NCName"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="req-line">
+    <xs:complexType>
+      <xs:attribute name="attach" type="xs:integer"/>
+      <xs:attribute name="attach-again" type="xs:integer"/>
+      <xs:attribute name="braces" type="xs:NCName"/>
+      <xs:attribute name="count" type="xs:integer"/>
+      <xs:attribute name="fold" type="xs:NCName"/>
+      <xs:attribute name="format" type="xs:NCName"/>
+      <xs:attribute name="left-braces" type="xs:NCName"/>
+      <xs:attribute name="left-quotes" type="xs:NCName"/>
+      <xs:attribute name="left-space" type="xs:NCName"/>
+      <xs:attribute name="name" use="required"/>
+      <xs:attribute name="quotes" type="xs:NCName"/>
+      <xs:attribute name="right-braces" type="xs:NCName"/>
+      <xs:attribute name="right-quotes" type="xs:NCName"/>
+      <xs:attribute name="right-space" type="xs:NCName"/>
+      <xs:attribute name="space" type="xs:NCName"/>
+      <xs:attribute name="value"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="status-line">
+    <xs:complexType>
+      <xs:attribute name="attach" type="xs:integer"/>
+      <xs:attribute name="attach-again" type="xs:integer"/>
+      <xs:attribute name="braces" type="xs:NCName"/>
+      <xs:attribute name="count" type="xs:integer"/>
+      <xs:attribute name="fold" type="xs:NCName"/>
+      <xs:attribute name="format" type="xs:NCName"/>
+      <xs:attribute name="left-braces" type="xs:NCName"/>
+      <xs:attribute name="left-quotes" type="xs:NCName"/>
+      <xs:attribute name="left-space" type="xs:NCName"/>
+      <xs:attribute name="name" use="required"/>
+      <xs:attribute name="quotes" type="xs:NCName"/>
+      <xs:attribute name="right-braces" type="xs:NCName"/>
+      <xs:attribute name="right-quotes" type="xs:NCName"/>
+      <xs:attribute name="right-space" type="xs:NCName"/>
+      <xs:attribute name="space" type="xs:NCName"/>
+      <xs:attribute name="value"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="HEADERS">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="header"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="CONTENT">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="SDP_BODY"/>
+        <xs:element minOccurs="0" ref="XML_BODY"/>
+        <xs:element minOccurs="0" ref="TXT_BODY"/>
+        <xs:element minOccurs="0" ref="OTHERS_BODY"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="SDP_BODY">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="header"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="sdp"/>
+        <xs:element minOccurs="0" ref="file"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sdp">
+    <xs:complexType>
+      <xs:attribute name="attach" type="xs:integer"/>
+      <xs:attribute name="attach-again" type="xs:integer"/>
+      <xs:attribute name="braces" type="xs:NCName"/>
+      <xs:attribute name="count" type="xs:integer"/>
+      <xs:attribute name="fold" type="xs:NCName"/>
+      <xs:attribute name="format" type="xs:NCName"/>
+      <xs:attribute name="left-braces" type="xs:NCName"/>
+      <xs:attribute name="left-quotes" type="xs:NCName"/>
+      <xs:attribute name="left-space" type="xs:NCName"/>
+      <xs:attribute name="name" use="required" type="xs:NCName"/>
+      <xs:attribute name="quotes" type="xs:NCName"/>
+      <xs:attribute name="right-braces" type="xs:NCName"/>
+      <xs:attribute name="right-quotes" type="xs:NCName"/>
+      <xs:attribute name="right-space" type="xs:NCName"/>
+      <xs:attribute name="space" type="xs:NCName"/>
+      <xs:attribute name="value" type="xs:anyURI"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="XML_BODY">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="header"/>
+        <xs:element minOccurs="0" ref="file"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="TXT_BODY">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="header"/>
+        <xs:element minOccurs="0" ref="file"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="OTHERS_BODY">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="header"/>
+        <xs:element minOccurs="0" ref="file"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="APPEND">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="file"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="header">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="param"/>
+        <xs:element minOccurs="0" ref="file"/>
+      </xs:sequence>
+      <xs:attribute name="attach" type="xs:integer"/>
+      <xs:attribute name="attach-again" type="xs:integer"/>
+      <xs:attribute name="braces" type="xs:NCName"/>
+      <xs:attribute name="count" type="xs:integer"/>
+      <xs:attribute name="fold" type="xs:NCName"/>
+      <xs:attribute name="format"/>
+      <xs:attribute name="left-braces" type="xs:NCName"/>
+      <xs:attribute name="left-quotes" type="xs:NCName"/>
+      <xs:attribute name="left-space" type="xs:NCName"/>
+      <xs:attribute name="name" use="required"/>
+      <xs:attribute name="quotes" type="xs:NCName"/>
+      <xs:attribute name="right-braces" type="xs:NCName"/>
+      <xs:attribute name="right-quotes" type="xs:NCName"/>
+      <xs:attribute name="right-space" type="xs:NCName"/>
+      <xs:attribute name="space" type="xs:NCName"/>
+      <xs:attribute name="value"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="param">
+    <xs:complexType>
+      <xs:attribute name="attach" type="xs:integer"/>
+      <xs:attribute name="attach-again" type="xs:integer"/>
+      <xs:attribute name="braces" type="xs:NCName"/>
+      <xs:attribute name="count" type="xs:integer"/>
+      <xs:attribute name="fold" type="xs:NCName"/>
+      <xs:attribute name="format" type="xs:NCName"/>
+      <xs:attribute name="left-braces" type="xs:NCName"/>
+      <xs:attribute name="left-quotes" type="xs:NCName"/>
+      <xs:attribute name="left-space" type="xs:NCName"/>
+      <xs:attribute name="name" use="required"/>
+      <xs:attribute name="quotes" type="xs:NCName"/>
+      <xs:attribute name="right-braces" type="xs:NCName"/>
+      <xs:attribute name="right-quotes" type="xs:NCName"/>
+      <xs:attribute name="right-space" type="xs:NCName"/>
+      <xs:attribute name="space" type="xs:NCName"/>
+      <xs:attribute name="value"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="file">
+    <xs:complexType>
+      <xs:attribute name="source" use="required" type="xs:NCName"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

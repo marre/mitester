@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="TEST_FLOW">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="TEST"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="TEST">
+    <xs:complexType>
+      <xs:choice maxOccurs="unbounded">
+        <xs:element ref="ACTION"/>
+        <xs:element ref="WAIT"/>
+      </xs:choice>
+      <xs:attribute name="DESCRIPTION" use="required"/>
+      <xs:attribute name="TEST-SHEET"/>
+      <xs:attribute name="TEST-ID" use="required" type="xs:NCName"/>
+      <xs:attribute name="TEST-SUITE"/>
+      <xs:attribute name="TYPE" use="required" type="xs:NCName"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="ACTION">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="PARAM"/>
+      </xs:sequence>
+      <xs:attribute name="DISCARD" type="xs:NCName"/>
+      <xs:attribute name="RECV" type="xs:NCName"/>
+      <xs:attribute name="SEND" type="xs:NCName"/>
+      <xs:attribute name="value" use="required" type="xs:NCName"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="PARAM">
+    <xs:complexType>
+      <xs:attribute name="type" use="required" type="xs:NCName"/>
+      <xs:attribute name="value" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="WAIT">
+    <xs:complexType>
+      <xs:attribute name="unit" use="required" type="xs:NCName"/>
+      <xs:attribute name="value" use="required" type="xs:decimal"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="SDP_BODY">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="sdp"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sdp">
+    <xs:complexType>
+      <xs:attribute name="attach" type="xs:integer"/>
+      <xs:attribute name="attach-again" type="xs:integer"/>
+      <xs:attribute name="braces" type="xs:NCName"/>
+      <xs:attribute name="count" type="xs:integer"/>
+      <xs:attribute name="fold" type="xs:NCName"/>
+      <xs:attribute name="format" type="xs:NCName"/>
+      <xs:attribute name="left-braces" type="xs:NCName"/>
+      <xs:attribute name="left-quotes" type="xs:NCName"/>
+      <xs:attribute name="left-space" type="xs:NCName"/>
+      <xs:attribute name="name" use="required" type="xs:NCName"/>
+      <xs:attribute name="quotes" type="xs:NCName"/>
+      <xs:attribute name="right-braces" type="xs:NCName"/>
+      <xs:attribute name="right-quotes" type="xs:NCName"/>
+      <xs:attribute name="right-space" type="xs:NCName"/>
+      <xs:attribute name="space" type="xs:NCName"/>
+      <xs:attribute name="value" use="required" type="xs:anyURI"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

@@ -1,0 +1,18 @@
+Bundle-Activator: net.java.sip.communicator.impl.changestatus.ChangeStatusActivator
+Bundle-Name: change status
+Bundle-Description: An implementation of the status changes of sip account
+Bundle-Vendor: sip-communicator.org
+Bundle-Version: 0.0.1
+Import-Package: org.osgi.framework,
+ org.xml.sax,
+ org.w3c.dom,
+ javax.xml.transform,
+ javax.xml.transform.dom,
+ javax.xml.transform.stream,
+ javax.xml.parsers,
+ net.java.sip.communicator.util,
+ net.java.sip.communicator.util.xml,
+ net.java.sip.communicator.service.fileaccess,
+ net.java.sip.communicator.service.configuration,
+ net.java.sip.communicator.service.configuration.event
+ 
