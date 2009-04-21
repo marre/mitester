@@ -34,6 +34,7 @@
  */
 package com.mitester.sipserver.sipmessagehandler;
 
+import static com.mitester.sipserver.SipServerConstants.SERVER_REQUEST;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_DISPLAY_NAME;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_PORT;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_USER_NAME;
@@ -66,6 +67,8 @@ import javax.sip.header.ToHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 
+import com.mitester.sipserver.ProcessSIPMessage;
+
 /**
  * A method is used to inform subscribers of changes in state to which the
  * subscriber has a subscription.
@@ -84,9 +87,9 @@ public class NOTIFYRequestHandler {
 	 * @throws InvalidArgumentException
 	 * @throws SipException
 	 */
-	public static Request createNOTIFYRequest(SIPMessage sipmsg)
-	        throws NullPointerException, java.text.ParseException,
-	        InvalidArgumentException, SipException {
+	public static Request createNOTIFYRequest(SIPMessage sipmsg, String dialog)
+			throws NullPointerException, java.text.ParseException,
+			InvalidArgumentException, SipException {
 		MessageFactoryImpl messageFactoryImpl = new MessageFactoryImpl();
 		Request request;
 		SipFactory factory = SipFactory.getInstance();
@@ -97,68 +100,83 @@ public class NOTIFYRequestHandler {
 		if (sipmsg != null) {
 			ViaList via = sipmsg.getViaHeaders();
 			SipURI requestURI = addressFactory
-			        .createSipURI("user", "127.0.0.1");
+					.createSipURI("user", "127.0.0.1");
 			MaxForwardsHeader maxfwd = headerFactory
-			        .createMaxForwardsHeader(70);
+					.createMaxForwardsHeader(70);
 			long invitecseq = sipmsg.getCSeq().getSeqNumber();
 			CSeqHeader cseq = headerFactory.createCSeqHeader(invitecseq,
-			        Request.NOTIFY);
+					Request.NOTIFY);
+			CallIdHeader callid;
+			FromHeader fromHeader;
+			ToHeader toHeader;
+			if (dialog != null) {
+				SIPMessage sipMsg = ProcessSIPMessage.getSIPMessage(dialog,
+						Request.NOTIFY, SERVER_REQUEST);
+				callid = sipMsg.getCallId();
+				fromHeader = sipMsg.getFrom();
+				toHeader = sipMsg.getTo();
+			} else {
+				callid = sipmsg.getCallId();
+				fromHeader = sipmsg.getFrom();
+				toHeader = sipmsg.getTo();
+			}
+
 			request = messageFactoryImpl.createRequest(requestURI,
-			        Request.NOTIFY, sipmsg.getCallId(), cseq, sipmsg.getFrom(),
-			        sipmsg.getTo(), via, maxfwd);
+					Request.NOTIFY, callid, cseq, fromHeader, toHeader, via,
+					maxfwd);
 			request.setMethod(Request.NOTIFY);
 		} else {
 
 			SipURI fromAddress = MessageHandlerHelper.createSIPURI(
-			        FROM_USER_NAME, LOOP_BACK_ADDRESS, addressFactory);
+					FROM_USER_NAME, LOOP_BACK_ADDRESS, addressFactory);
 			fromAddress.setPort(FROM_PORT);
 			Address fromNameAddress = MessageHandlerHelper.createAddress(
-			        fromAddress, addressFactory);
+					fromAddress, addressFactory);
 			fromNameAddress.setDisplayName(FROM_DISPLAY_NAME);
 			// create from header
 			FromHeader fromHeader = MessageHandlerHelper.createFromHeader(
-			        fromNameAddress, Integer.toHexString(remotetag.nextInt()),
-			        headerFactory);
+					fromNameAddress, Integer.toHexString(remotetag.nextInt()),
+					headerFactory);
 
 			SipURI toAddress = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
-			        LOOP_BACK_ADDRESS, addressFactory);
+					LOOP_BACK_ADDRESS, addressFactory);
 			toAddress.setPort(TO_PORT);
 			Address toNameAddress = MessageHandlerHelper.createAddress(
-			        toAddress, addressFactory);
+					toAddress, addressFactory);
 			toNameAddress.setDisplayName(TO_DISPLAY_NAME);
 			// create to Header
 			ToHeader toHeader = MessageHandlerHelper.createToHeader(
-			        toNameAddress, null, headerFactory);
+					toNameAddress, null, headerFactory);
 
 			SipURI requestURI = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
-			        LOOP_BACK_ADDRESS, addressFactory);
+					LOOP_BACK_ADDRESS, addressFactory);
 			requestURI.setPort(TO_PORT);
 
 			// create Vi aheader
 			ViaHeader viaHeader = MessageHandlerHelper.createViaHeader(
-			        LOOP_BACK_ADDRESS, FROM_PORT, PROTOCOL, MAGIC_COOKIES
-			                + Integer.toHexString(remotetag.nextInt()),
-			        headerFactory);
+					LOOP_BACK_ADDRESS, FROM_PORT, PROTOCOL, MAGIC_COOKIES
+							+ Integer.toHexString(remotetag.nextInt()),
+					headerFactory);
 
 			// add via headers
 			viaHeaders.add(viaHeader);
 
 			CSeqHeader cSeqHeader = MessageHandlerHelper.createCSeqHeader(1,
-			        Request.NOTIFY, headerFactory);
+					Request.NOTIFY, headerFactory);
 
 			// Create a new MaxForwardsHeader
 			MaxForwardsHeader maxForwards = MessageHandlerHelper
-			        .createMaxForwardsHeader(MAXFORWARDS, headerFactory);
+					.createMaxForwardsHeader(MAXFORWARDS, headerFactory);
 
 			// create call-ID
 			CallIdHeader callid = MessageHandlerHelper.createCallIdHeader(
-			        Integer.toHexString(remotetag.nextInt()),
-			        LOOP_BACK_ADDRESS, headerFactory);
+					Integer.toHexString(remotetag.nextInt()),
+					LOOP_BACK_ADDRESS, headerFactory);
 
 			// create request
 			request = MessageHandlerHelper.createRequest(requestURI,
-			        Request.NOTIFY, callid, cSeqHeader, fromHeader, toHeader,
-			        viaHeaders, maxForwards, messageFactoryImpl);
+					Request.NOTIFY, callid, cSeqHeader, fromHeader, toHeader,
+					viaHeaders, maxForwards, messageFactoryImpl);
 		}
 		return request;
 	}

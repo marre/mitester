@@ -44,33 +44,63 @@ public class TestResult {
 
 	private static final String TEST_PASS = "PASS";
 
+	private static final String EXECUTION_START_TIME = "EXECUTION_START_TIME";
+
+	private static final String EXECUTION_END_TIME = "EXECUTION_END_TIME";
+
+	private static final String FIELD_SEPARATOR = ":";
+
 	private static final String TEST_FAIL = "FAIL";
 
+	private static final String LINE_SEPARATOR = System
+			.getProperty("line.separator");
+
 	private static final StringBuilder RESULT_BUFFER = new StringBuilder();
+
+	private static int TEST_ID_LENGTH = 35;
+
+	private TestResult() {
+
+	}
 
 	/**
 	 * this method called end of every test execution to update the test result
 	 * 
 	 * @param testID
-	 *            is String object represents test case id
+	 *            String object represents test case id
 	 * @param testResult
-	 *            is a boolean represents the test result
+	 *            boolean represents the test result
 	 */
-	
-	private TestResult() {
-		
-	}
-	
-	
 
 	public static void updateResult(String testID, boolean testResult) {
 
-		if (testResult)
-			RESULT_BUFFER.append(testID + "   " + TEST_PASS
-					+ System.getProperty("line.separator"));
-		else
-			RESULT_BUFFER.append(testID + "   " + TEST_FAIL
-					+ System.getProperty("line.separator"));
+		String resultStr = null;
+		int len = 0;
+		int testIdLen = testID.length();
+
+		if (TEST_ID_LENGTH > testIdLen) {
+
+			len = TEST_ID_LENGTH - testIdLen;
+		} else {
+
+			TEST_ID_LENGTH = testIdLen + 10;
+
+			len = TEST_ID_LENGTH - testIdLen;
+		}
+
+		if (testResult) {
+
+			resultStr = String.format("%" + len + "s", TEST_PASS);
+
+		} else {
+
+			resultStr = String.format("%" + len + "s", TEST_FAIL);
+
+		}
+
+		RESULT_BUFFER.append(testID + resultStr
+				+ System.getProperty("line.separator"));
+
 	}
 
 	/**
@@ -83,8 +113,10 @@ public class TestResult {
 	 */
 	public static void printResult(String startTime, String endTime) {
 
+		String fmtStr = null;
+
 		TestUtility
-				.printMessage("\n"
+				.printMessage(LINE_SEPARATOR
 						+ "************************************************************************");
 		TestUtility.printMessage("Consolidated Test Results");
 		TestUtility
@@ -94,11 +126,18 @@ public class TestResult {
 		try {
 			BufferedWriter buffferedWriter = new BufferedWriter(new FileWriter(
 					"TestResult.txt", true));
-			buffferedWriter.write("Excution Start Time\t: " + startTime);
-			buffferedWriter.write("\r\n");
+
+			fmtStr = String.format("%4s", FIELD_SEPARATOR);
+
+			buffferedWriter.write(EXECUTION_START_TIME + fmtStr + " "
+					+ startTime);
+			buffferedWriter.write(LINE_SEPARATOR);
 			buffferedWriter.write(RESULT_BUFFER.toString());
-			buffferedWriter.write("Excution End Time\t\t: " + endTime);
-			buffferedWriter.write("\r\n");
+
+			fmtStr = String.format("%6s", FIELD_SEPARATOR);
+
+			buffferedWriter.write(EXECUTION_END_TIME + fmtStr + " " + endTime);
+			buffferedWriter.write(LINE_SEPARATOR);
 			buffferedWriter.flush();
 			buffferedWriter.close();
 

@@ -34,13 +34,17 @@
  */
 package com.mitester.sipserver.sipmessagehandler;
 
+import static com.mitester.sipserver.SipServerConstants.SERVER_RESPONSE;
+import gov.nist.javax.sip.header.Via;
 import gov.nist.javax.sip.message.MessageFactoryImpl;
 import gov.nist.javax.sip.message.SIPMessage;
 import gov.nist.javax.sip.message.SIPResponse;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
+import javax.sip.InvalidArgumentException;
 import javax.sip.PeerUnavailableException;
 import javax.sip.SipFactory;
 import javax.sip.address.Address;
@@ -55,8 +59,9 @@ import javax.sip.header.HeaderFactory;
 import javax.sip.header.MaxForwardsHeader;
 import javax.sip.header.ToHeader;
 import javax.sip.header.ViaHeader;
-import javax.sip.message.Request;
 import javax.sip.message.Response;
+
+import com.mitester.sipserver.ProcessSIPMessage;
 
 /**
  * Used to generate the SIP Response with the status code
@@ -75,34 +80,52 @@ public class ResponseHandler {
 	 * @throws NullPointerException
 	 * @throws java.text.ParseException
 	 * @throws PeerUnavailableException
+	 * @throws InvalidArgumentException 
 	 */
 	public static Response sendResponseWithCode(int statusCode, String method,
-	        SIPMessage sipMessage) throws NullPointerException,
-	        java.text.ParseException, PeerUnavailableException {
+	        SIPMessage sipMessage,String dialog) throws NullPointerException,
+	        java.text.ParseException, PeerUnavailableException, InvalidArgumentException {
 		MessageFactoryImpl messageFactoryImpl = new MessageFactoryImpl();
 		String tag = null;
 		Response response;
 		SipFactory factory = SipFactory.getInstance();
 		HeaderFactory headerFactory = factory.createHeaderFactory();
 		AddressFactory addressFactory = factory.createAddressFactory();
-		ArrayList<ViaHeader> viaHeaders = new ArrayList<ViaHeader>();
+		List<ViaHeader> viaHeaders = new ArrayList<ViaHeader>();
 		Random remotetag = new Random();
-		Request r = (Request) sipMessage;
-		// response = messageFactoryImpl.createResponse(statusCode, r);
-		MaxForwardsHeader m = (MaxForwardsHeader) r
-		        .getHeader(MaxForwardsHeader.NAME);
-		CallIdHeader call = (CallIdHeader) r.getHeader(CallIdHeader.NAME);
 
-		FromHeader from = (FromHeader) r.getHeader(FromHeader.NAME);
-		ToHeader to = (ToHeader) r.getHeader(ToHeader.NAME);
-		CSeqHeader c = (CSeqHeader) r.getHeader(CSeqHeader.NAME);
-		ViaHeader v = (ViaHeader) r.getHeader(ViaHeader.NAME);
-		viaHeaders = new ArrayList<ViaHeader>();
+		MaxForwardsHeader m;
+		CallIdHeader call;
+		FromHeader from;
+		ToHeader to;
+		CSeqHeader c;
+		if(dialog != null) {
+			SIPMessage sipMsg = ProcessSIPMessage.getSIPMessage(dialog, method,
+			        SERVER_RESPONSE);
+			
+			call = sipMsg.getCallId();
+
+			from = sipMsg.getFrom();
+			to = sipMsg.getTo();
+		} else {
+			call = sipMessage.getCallId();
+
+			from = sipMessage.getFrom();
+			to = sipMessage.getTo();
+		}
+		
+//		m = sipMessage.getMaxForwards();
+		m = headerFactory.createMaxForwardsHeader(70);
+		
+		c = sipMessage.getCSeq();
+		c.setMethod(method);
+		Via v = sipMessage.getTopmostVia();
+		
 		viaHeaders.add(v);
 		response = messageFactoryImpl.createResponse(statusCode, call, c, from,
 		        to, viaHeaders, m);
 		response.removeHeader(MaxForwardsHeader.NAME);
-		// c.setMethod(method);
+		
 		String reason = SIPResponse.getReasonPhrase(statusCode);
 		response.setReasonPhrase(reason);
 		SipURI contactUrl = addressFactory.createSipURI(null, "127.0.0.1");
@@ -126,12 +149,14 @@ public class ResponseHandler {
 		if (method.equals("REGISTER")) {
 			if (statusCode == 200) {
 				tag = Integer.toHexString(remotetag.nextInt());
+				if(to.getTag() == null)
 				to.setTag(tag);
 				// ExpiresHeader e = request.getExpires();
 				ExpiresHeader e = sipMessage.getExpires();
 				response.setExpires(e);
 			} else {
 				tag = Integer.toHexString(remotetag.nextInt());
+				if(to.getTag() == null)
 				to.setTag(tag);
 			}
 		}
@@ -139,12 +164,14 @@ public class ResponseHandler {
 		if (method.equals("SUBSCRIBE")) {
 			if (statusCode == 200) {
 				tag = Integer.toHexString(remotetag.nextInt());
+				if(to.getTag() == null)
 				to.setTag(tag);
 				// ExpiresHeader e = request.getExpires();
 				ExpiresHeader e = sipMessage.getExpires();
 				response.setExpires(e);
 			} else {
 				tag = Integer.toHexString(remotetag.nextInt());
+				if(to.getTag() == null)
 				to.setTag(tag);
 			}
 		}
@@ -152,10 +179,12 @@ public class ResponseHandler {
 		if (method.equals("INVITE")) {
 			if (statusCode == 200) {
 				tag = Integer.toHexString(remotetag.nextInt());
-				to.setTag(tag);
+				if(to.getTag() == null)
+					to.setTag(tag);
 
 			} else {
 				tag = Integer.toHexString(remotetag.nextInt());
+				if(to.getTag() == null)
 				to.setTag(tag);
 			}
 		}

@@ -1,0 +1,504 @@
+<TEST_FLOW>
+
+    <TEST TYPE = 'Normal' TEST-ID = 'SS-1' 
+               DESCRIPTION = ' SUT sends First REGISTER request
+                                           miTester sends 401 REGISTER response,
+                                           SUT sends Second REGISTER request,
+                                           miTester sends 200 REGISTER response,
+                                           SUT sends De-REGISTER request,
+                                           miTester sends 200 REGISTER response' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='401_REGISTER' >
+            <ADD_MSG>
+                <HEADERS>
+                    <header name='www-authenticate' value='Digest'>
+                        <param name='realm' value='atlanta.com' />
+                        <param name='domain' value='sip:boxesbybob.com' />
+                        <param name='qop' value='auth' />
+                        <param name='nonce' value='f84f1cec41e6cbe5aea9c8e88d359' />
+                        <param name='opaque' value='NULL' />
+                        <param name='stale' value='FALSE' />
+                        <param name='algorithm' value='MD5' />
+                    </header>
+                </HEADERS>
+            </ADD_MSG>
+        </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Normal' TEST-ID = 'SS-2' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           miTester sends 200 REGISTER response,
+                                           miTester sends INVITE request,
+                                           SUT sends 200 INVITE response,
+                                           miTester sends ACK request,
+                                           SUT sends BYE request,
+                                           miTester sends 200 BYE response,
+                                           SUT sends De-REGISTER request,
+                                           miTester sends 200 REGISTER response' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+        <ACTION SEND='req' value='INVITE' >
+            <ADD_MSG>
+                <CONTENT>
+                    <SDP_BODY>
+                        <header name='content-type' value='application/sdp' />
+                        <sdp name='v' value='0' />
+                        <sdp name='o' value='sip:UserA@127.0.0.1 234435 234435 IN IP4 127.0.0.1' />
+                        <sdp name='s' value='peer Session SDP' />
+                        <sdp name='c' value='IN IP4 127.0.0.1' />
+                        <sdp name='t' value='0 0' />
+                        <sdp name='m' value='audio 5000 RTP/AVP 0 8 97 3 5 4' />
+                        <sdp name='a' value='rtpmap:4 G723/8000' />
+                        <sdp name='a' value='fmtp:4 annexa=no;bitrate=6.3' />
+                        <sdp name='m' value='video 5002 RTP/AVP 99 34 26 31' />
+                        <sdp name='a' value='rtpmap:99 H264/90000' />
+                        <sdp name='a' value='maxptime:100' />
+                        <sdp name='a' value='fmtp:99 packetization-mode=1' />
+                        <sdp name='a' value='recvonly' />
+                    </SDP_BODY>
+                </CONTENT>
+            </ADD_MSG> 
+        </ACTION>
+        <ACTION RECV='res' value='200_INVITE'>
+        </ACTION>
+        <ACTION SEND='req' value='ACK' >
+        </ACTION>
+        <ACTION RECV='req' value='BYE' >
+        </ACTION>
+        <ACTION SEND='res' value='200_BYE'>
+        </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Normal' TEST-ID = 'SS-3' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           miTester sends 200 REGISTER response,
+                                           SUT sends INVITE request,
+                                           miTester sends 200 INVITE response,
+                                           SUT sends ACK request,
+                                           miTester sends BYE request,
+                                           SUT sends 200 BYE response,
+                                           SUT sends De-REGISTER request,
+                                           miTester sends 200 REGISTER response' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>     
+        <ACTION RECV='req' value='INVITE' >
+        </ACTION>
+        <ACTION SEND='res' value='200_INVITE'>
+            <ADD_MSG>
+                <CONTENT>
+                    <SDP_BODY>
+                        <header name='content-type' value='application/sdp' />
+                        <sdp name='v' value='0' />
+                        <sdp name='o' value='sip:UserA@127.0.0.1 234435 234435 IN IP4 127.0.0.1' />
+                        <sdp name='s' value='peer Session SDP' />
+                        <sdp name='c' value='IN IP4 127.0.0.1' />
+                        <sdp name='t' value='0 0' />
+                        <sdp name='m' value='audio 5000 RTP/AVP 0 8 97 3 5 4' />
+                        <sdp name='a' value='rtpmap:4 G723/8000' />
+                        <sdp name='a' value='fmtp:4 annexa=no;bitrate=6.3' />
+                        <sdp name='m' value='video 5002 RTP/AVP 99 34 26 31' />
+                        <sdp name='a' value='rtpmap:99 H264/90000' />
+                        <sdp name='a' value='maxptime:100' />
+                        <sdp name='a' value='fmtp:99 packetization-mode=1' />
+                        <sdp name='a' value='recvonly' />
+                    </SDP_BODY>
+                </CONTENT>
+            </ADD_MSG>
+        </ACTION>
+        <ACTION RECV='req' value='ACK' >
+        </ACTION>
+        <ACTION SEND='req' value='BYE' >
+        </ACTION>
+        <ACTION RECV='res' value='200_BYE'>
+        </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Normal' TEST-ID = 'SS-4' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           miTester sends 200 REGISTER response,
+                                           miTester sends INVITE request,
+                                           SUT sends 486 INVITE response,
+                                           miTester sends ACK request,
+                                           SUT sends De-REGISTER request,
+                                           miTester sends 200 REGISTER response' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>     
+        <ACTION SEND='req' value='INVITE' >
+            <ADD_MSG>
+                <CONTENT>
+                    <SDP_BODY>
+                        <header name='content-type' value='application/sdp' />
+                        <sdp name='v' value='0' />
+                        <sdp name='o' value='sip:UserA@127.0.0.1 234435 234435 IN IP4 127.0.0.1' />
+                        <sdp name='s' value='peer Session SDP' />
+                        <sdp name='c' value='IN IP4 127.0.0.1' />
+                        <sdp name='t' value='0 0' />
+                        <sdp name='m' value='audio 5000 RTP/AVP 0 8 97 3 5 4' />
+                        <sdp name='a' value='rtpmap:4 G723/8000' />
+                        <sdp name='a' value='fmtp:4 annexa=no;bitrate=6.3' />
+                        <sdp name='m' value='video 5002 RTP/AVP 99 34 26 31' />
+                        <sdp name='a' value='rtpmap:99 H264/90000' />
+                        <sdp name='a' value='maxptime:100' />
+                        <sdp name='a' value='fmtp:99 packetization-mode=1' />
+                        <sdp name='a' value='recvonly' />
+                    </SDP_BODY>
+                </CONTENT>
+            </ADD_MSG> 
+        </ACTION>
+        <ACTION RECV='res' value='486_INVITE'>
+        </ACTION>
+        <ACTION SEND='req' value='ACK' >
+        </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Normal' TEST-ID = 'SS-5' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           miTester sends 200 REGISTER response,
+                                           SUT sends INVITE request,
+                                           miTester sends 180 INVITE response,
+                                           SUT sends CANCEL request,
+                                           miTester sends 200 CANCEL response,
+                                           miTester sends 487 INVITE response,
+                                           SUT sends ACK request,
+                                           SUT sends De-REGISTER request,
+                                           miTester sends 200 REGISTER response' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>  
+        <ACTION RECV='req' value='INVITE' >
+        </ACTION>
+        <ACTION SEND='res' value='180_INVITE'>
+        </ACTION>
+        <ACTION RECV='req' value='CANCEL' >
+        </ACTION>
+        <ACTION SEND='res' value='200_CANCEL'>
+        </ACTION>
+        <ACTION SEND='res' value='487_INVITE'>
+        </ACTION>
+        <ACTION RECV='req' value='ACK' >
+        </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Normal' TEST-ID = 'SS-6' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           miTester sends 200 OK REGISTER response with user -specified value in Max-Forwards header' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+            <ADD_MSG>
+                <HEADERS>
+                    <header name='max-forwards' value='25' />
+                </HEADERS>
+            </ADD_MSG>
+        </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Normal' TEST-ID = 'SS-7' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           miTester sends 200 OK REGISTER response,
+                                           miTester sends INVITE request with user-specified values in the request-line and SDP body,
+                                           SUT sends 486 Busy Here INVITE response
+                                           miTester sends ACK request,
+                                           SUT sends De-REGISTER request,
+                                           miTester sends 200 REGISTER response' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+        <ACTION SEND='req' value='INVITE' >
+            <ADD_MSG>
+                <LINE>
+                    <fline name='req-line' />
+                    <req-line name='req-uri' value='sip:UserC@127.0.0.1;5060' />
+                    <req-line name='transport' value='UDP' />
+                    <req-line name='sip-version' value='SIP/2.0' />
+                </LINE>
+                <CONTENT>
+                    <SDP_BODY>
+                        <header name='content-type' value='application/sdp' />
+                        <sdp name='v' value='0' />
+                        <sdp name='o' value='sip:UserA@127.0.0.1 234435 234435 IN IP4 127.0.0.1' />
+                        <sdp name='s' value='peer Session SDP' />
+                        <sdp name='c' value='IN IP4 127.0.0.1' />
+                        <sdp name='t' value='0 0' />
+                        <sdp name='m' value='audio 5000 RTP/AVP 0 8 97 3 5 4' />
+                        <sdp name='a' value='rtpmap:4 G723/8000' />
+                        <sdp name='a' value='fmtp:4 annexa=no;bitrate=6.3' />
+                        <sdp name='m' value='video 5002 RTP/AVP 99 34 26 31' />
+                        <sdp name='a' value='rtpmap:99 H264/90000' />
+                        <sdp name='a' value='maxptime:100' />
+                        <sdp name='a' value='fmtp:99 packetization-mode=1' />
+                        <sdp name='a' value='recvonly' />
+                    </SDP_BODY>
+                </CONTENT>
+            </ADD_MSG> 
+        </ACTION>
+        <ACTION RECV='res' value='486_INVITE'>
+        </ACTION>
+        <ACTION SEND='req' value='ACK' >
+        </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Normal' TEST-ID = 'SS-8' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           miTester sends 200 OK REGISTER response with user -specified values in Status line' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+            <ADD_MSG>
+                <LINE>  
+                    <fline name='status-line' />
+                        <status-line name='reason-phrase' value='OK' />
+                        <status-line name='status-code' value='200' />
+                        <status-line name='sip-version' value='SIP/2.0' />
+                </LINE>
+            </ADD_MSG>
+        </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Abormal' TEST-ID = 'SS-9' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           miTester sends 200 OK REGISTER response with values copied for User-Agent header from the incoming request' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+            <ADD_MSG>
+                <HEADERS>
+                    <header name='user-agent' value='***' />
+                </HEADERS>
+            </ADD_MSG>
+        </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Abormal' TEST-ID = 'SS-10' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           miTester sends 200 OK REGISTER response with missing From header' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+            <DEL_MSG>
+                <HEADERS>
+                    <header name='from' />
+                </HEADERS>
+            </DEL_MSG>
+        </ACTION>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Abormal' TEST-ID = 'SS-11' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           Based on the count value, miTester duplicates and sends the 200 OK REGISTER response' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' count='3' >
+        </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Abormal' TEST-ID = 'SS-12' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           Based on the count value, miTester duplicates and sends the From header in 200 OK REGISTER response' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+            <DUP_MSG>
+                <HEADERS>
+                    <header name='from' count='4' />
+                </HEADERS>
+            </DUP_MSG>
+        </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+
+    </TEST>
+
+
+
+    <TEST TYPE = 'Abormal' TEST-ID = 'SS-13' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           Based on the count value, miTester duplicates and sends the branch parameter in Via header - 200 OK REGISTER response' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+            <ADD_MSG>
+                <HEADERS>
+                    <header name='accept-language' value='en' >
+                        <param name='q' value='0.1' />
+                    </header>
+                </HEADERS>
+            </ADD_MSG>
+            <DUP_MSG>
+                <HEADERS>
+                    <header name='accept-language' >
+                        <param name='q' count='3' />
+                    </header>
+                </HEADERS>
+            </DUP_MSG>
+        </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Abormal' TEST-ID = 'SS-14' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           miTester sends 200 OK REGISTER response,
+                                           Based on the count value mentioned inside the TEST tag, the specific test case is executed' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Abormal' TEST-ID = 'SS-15'  
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           Based on the count value, miTester adds CRLF at the end of From header and sends 200 OK REGISTER response' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+            <ADD_CRLF>
+                <HEADERS>
+                    <header name='from' count='4' />
+                </HEADERS>
+            </ADD_CRLF>
+        </ACTION>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Abormal' TEST-ID = 'SS-16'  
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           Based on the count value, miTester removes CRLF at the end of From header and sends 200 OK REGISTER response' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+            <DEL_CRLF>
+                <HEADERS>
+                    <header name='from' />
+                </HEADERS>
+            </DEL_CRLF>
+        </ACTION>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Normal' TEST-ID = 'SS-17' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           miTester sends 200 OK REGISTER response with Accept-Language header as custom header' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+            <ADD_MSG>
+                <HEADERS>
+                    <header name='accept-language' value='fr;q=0.1, en;q=0.3' />
+                </HEADERS>
+            </ADD_MSG>
+        </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+
+    </TEST>
+
+</TEST_FLOW>

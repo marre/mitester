@@ -143,7 +143,7 @@ public class DuplicateHeaderHandler {
 	}
 
 	public static String duplicateParameter(String name, String msg,
-	        List<Param> param) {
+			List<Param> param) {
 		StringTokenizer token = new StringTokenizer(msg, NEWLINE);
 		StringBuilder s = new StringBuilder();
 		SIPHeaders namehde = SIPHeaders.getSipHeaderfromString(name);
@@ -158,21 +158,40 @@ public class DuplicateHeaderHandler {
 					int DUPPCount = Integer.parseInt(DUPHValue);
 					int indexparam = line.indexOf(DUPHname);
 					String parame = line.substring(indexparam, line.length());
-					parame = ";" + parame;
-					parame = parame.trim();
-					line = line.trim();
-					s.append(line);
-					for (int n1 = 0; n1 < DUPPCount - 1; n1++) {
-						s.append(parame);
+					String[] array = parame.split(";");
+					if (!(array.length > 1)) {
+						parame = ";" + parame;
+						parame = parame.trim();
+						line = line.trim();
+						s.append(line);
+						for (int n1 = 0; n1 < DUPPCount - 1; n1++) {
+							s.append(parame);
+						}
+						s.append(NEWLINE);
+					} else {
+						array = line.split(";");
+						for (int i = 0; i < array.length; i++) {
+							if (array[i].startsWith(DUPHname)) {
+								for (int n1 = 0; n1 < DUPPCount; n1++) {
+									s.append(array[i]);
+									s.append(";");
+								}
+							} else {
+								s.append(array[i]);
+								if ((i == (array.length - 1))){									
+									break;
+								} else
+									s.append(";");									
+							}
+						}
+						s.append(NEWLINE);
 					}
-					s.append(NEWLINE);
 				}
 			} else {
 				s.append(nexttoken);
 				s.append(NEWLINE);
 			}
 		}
-
 		return s.toString();
 	}
 

@@ -74,6 +74,7 @@ public class SipParser {
 	 */
 	public static SIPMessage parseSipMessage(String msgBuf)
 	        throws ParseException, SipException, NullPointerException {
+		
 		LOGGER.info("Parsing the SIP message");
 
 		return sipMsgParser.parseSIPMessage(msgBuf);

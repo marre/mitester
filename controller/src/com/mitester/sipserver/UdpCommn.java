@@ -35,6 +35,7 @@
 package com.mitester.sipserver;
 
 import static com.mitester.sipserver.SipServerConstants.CLIENT_IP_ADDRESS;
+import static com.mitester.sipserver.SipServerConstants.OUTGOING_MSG;
 import static com.mitester.utility.ConfigurationProperties.CONFIG_INSTANCE;
 
 import java.io.IOException;
@@ -42,7 +43,10 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.text.ParseException;
 import java.util.logging.Logger;
+
+import javax.sip.SipException;
 
 import com.mitester.utility.MiTesterLog;
 import com.mitester.utility.TestUtility;
@@ -57,7 +61,7 @@ import com.mitester.utility.TestUtility;
 public class UdpCommn {
 
 	private static final Logger LOGGER = MiTesterLog.getLogger(UdpCommn.class
-	        .getName());
+			.getName());
 
 	private DatagramSocket udpSocket = null;
 
@@ -70,19 +74,19 @@ public class UdpCommn {
 	private final int CLIENT_PORT;
 
 	private final InetAddress CLIENT_IP_ADDR = TestUtility
-	        .getHostAddress(CONFIG_INSTANCE.getValue(CLIENT_IP_ADDRESS));
+			.getHostAddress(CONFIG_INSTANCE.getValue(CLIENT_IP_ADDRESS));
 
 	public UdpCommn() {
 
 		if (CONFIG_INSTANCE.isKeyExists(SipServerConstants.SERVER_LISTEN_PORT)) {
 			SERVER_PORT = Integer.parseInt(CONFIG_INSTANCE
-			        .getValue(SipServerConstants.SERVER_LISTEN_PORT));
+					.getValue(SipServerConstants.SERVER_LISTEN_PORT));
 		} else {
 			SERVER_PORT = SipServerConstants.DEFAULT_SERVER_PORT;
 		}
 		if (CONFIG_INSTANCE.isKeyExists(SipServerConstants.CLIENT_LISTEN_PORT)) {
 			CLIENT_PORT = Integer.parseInt(CONFIG_INSTANCE
-			        .getValue(SipServerConstants.CLIENT_LISTEN_PORT));
+					.getValue(SipServerConstants.CLIENT_LISTEN_PORT));
 		} else {
 			CLIENT_PORT = SipServerConstants.DEFAULT_CLIENT_PORT;
 		}
@@ -109,8 +113,8 @@ public class UdpCommn {
 		dataPacket = new DatagramPacket(buf, SipServerConstants.MAX_PACKET_SIZE);
 		udpSocket.receive(dataPacket);
 		LOGGER.info("receiving SIP message from "
-		        + dataPacket.getAddress().getHostAddress() + ", port "
-		        + dataPacket.getPort());
+				+ dataPacket.getAddress().getHostAddress() + ", port "
+				+ dataPacket.getPort());
 		return new String(dataPacket.getData(), 0, dataPacket.getLength());
 	}
 
@@ -154,13 +158,13 @@ public class UdpCommn {
 	 * @throws SocketException
 	 */
 	public void sendUdpMessage(String sipMessage) throws IOException,
-	        SocketException {
+			SocketException, ParseException, SipException, NullPointerException {
 
 		LOGGER.info("sending SIP message to " + CLIENT_IP_ADDR.getHostAddress()
-		        + ", port " + CLIENT_PORT);
-
+				+ ", port " + CLIENT_PORT);
+		ProcessSIPMessage.processSIPMessage(sipMessage, OUTGOING_MSG);
 		DatagramPacket packet = new DatagramPacket(sipMessage.getBytes(),
-		        sipMessage.length(), CLIENT_IP_ADDR, CLIENT_PORT);
+				sipMessage.length(), CLIENT_IP_ADDR, CLIENT_PORT);
 		LOGGER.info(packet.toString());
 		udpSocket.send(packet);
 	}

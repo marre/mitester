@@ -126,18 +126,18 @@ public class SIPHeaderProcessor {
 		}
 
 		List<String> empty = SIPHeaderHandler.getEmptyList();
-		if (empty != null && empty.size() != 0) {
+		if ((empty != null) && (empty.size() != 0)) {
 			msg = EmptyValueToHeader.addEmptyValueToHeader(empty, msg);
 			SIPHeaderHandler.deiniEmptyList();
 		}
 		List<com.mitester.jaxbparser.server.Header> invalid = SIPHeaderHandler
 		        .getInvalidList();
-		if (invalid != null && invalid.size() != 0) {
+		if ((invalid != null) && (invalid.size() != 0)) {
 			msg = InvalidValueToHeaders.addInvalidValuesToHeader(invalid, msg);
 			SIPHeaderHandler.deiniInvalidList();
 		}
 		List<String> copyHeader = SIPHeaderHandler.getCopyList();
-		if (copyHeader != null) {
+		if ((copyHeader != null) && (copyHeader.size() != 0)) {
 			msg = CopyValuetoHeader.addCopyValueToHeader(copyHeader, msg);
 			SIPHeaderHandler.deiniCopyList();
 		}

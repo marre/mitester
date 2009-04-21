@@ -34,6 +34,7 @@
  */
 package com.mitester.sipserver.sipmessagehandler;
 
+import static com.mitester.sipserver.SipServerConstants.SERVER_REQUEST;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_DISPLAY_NAME;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_PORT;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_USER_NAME;
@@ -45,6 +46,7 @@ import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstant
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.TO_PORT;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.TO_USER_NAME;
 import gov.nist.javax.sip.message.MessageFactoryImpl;
+import gov.nist.javax.sip.message.SIPMessage;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,6 +67,8 @@ import javax.sip.header.ToHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 
+import com.mitester.sipserver.ProcessSIPMessage;
+
 /**
  * A method allows a UA to query another UA or a proxy server as to its
  * capabilities.This allows a client to discover information about the supported
@@ -84,8 +88,9 @@ public class OPTIONSRequestHandler {
 	 * @throws InvalidArgumentException
 	 * @throws SipException
 	 */
-	public static Request createOPTIONSRequest() throws NullPointerException,
+	public static Request createOPTIONSRequest(String dialog) throws NullPointerException,
 	        java.text.ParseException, InvalidArgumentException, SipException {
+
 
 		Request request;
 		SipFactory factory = SipFactory.getInstance();
@@ -94,28 +99,46 @@ public class OPTIONSRequestHandler {
 		MessageFactoryImpl messageFactoryImpl = new MessageFactoryImpl();
 		List<ViaHeader> viaHeaders = new ArrayList<ViaHeader>();
 		Random remotetag = new Random();
-
-		SipURI fromAddress = MessageHandlerHelper.createSIPURI(FROM_USER_NAME,
+		CallIdHeader callid ;
+		SipURI fromAddress;
+		Address fromNameAddress;
+		FromHeader fromHeader;
+		SipURI toAddress;
+		Address toNameAddress;
+		ToHeader toHeader;
+		if(dialog == null) {
+		fromAddress = MessageHandlerHelper.createSIPURI(FROM_USER_NAME,
 		        LOOP_BACK_ADDRESS, addressFactory);
 		fromAddress.setPort(FROM_PORT);
-		Address fromNameAddress = MessageHandlerHelper.createAddress(
+		fromNameAddress = MessageHandlerHelper.createAddress(
 		        fromAddress, addressFactory);
 		fromNameAddress.setDisplayName(FROM_DISPLAY_NAME);
 		// create from header
-		FromHeader fromHeader = MessageHandlerHelper.createFromHeader(
+		fromHeader = MessageHandlerHelper.createFromHeader(
 		        fromNameAddress, Integer.toHexString(remotetag.nextInt()),
 		        headerFactory);
 
-		SipURI toAddress = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
+		toAddress = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
 		        LOOP_BACK_ADDRESS, addressFactory);
 		toAddress.setPort(TO_PORT);
-		Address toNameAddress = MessageHandlerHelper.createAddress(toAddress,
+		toNameAddress = MessageHandlerHelper.createAddress(toAddress,
 		        addressFactory);
 		toNameAddress.setDisplayName(TO_DISPLAY_NAME);
 		// create to Header
-		ToHeader toHeader = MessageHandlerHelper.createToHeader(toNameAddress,
+		toHeader = MessageHandlerHelper.createToHeader(toNameAddress,
 		        null, headerFactory);
-
+		
+		// create call-ID
+		callid = MessageHandlerHelper.createCallIdHeader(Integer
+		        .toHexString(remotetag.nextInt()), LOOP_BACK_ADDRESS,
+		        headerFactory);
+		} else {
+			SIPMessage sipMsg = ProcessSIPMessage.getSIPMessage(dialog, Request.OPTIONS,
+			        SERVER_REQUEST);
+			callid = sipMsg.getCallId();
+			fromHeader = sipMsg.getFrom();
+			toHeader = sipMsg.getTo();
+		}
 		SipURI requestURI = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
 		        LOOP_BACK_ADDRESS, addressFactory);
 		requestURI.setPort(TO_PORT);
@@ -135,11 +158,6 @@ public class OPTIONSRequestHandler {
 		// Create a new MaxForwardsHeader
 		MaxForwardsHeader maxForwards = MessageHandlerHelper
 		        .createMaxForwardsHeader(MAXFORWARDS, headerFactory);
-
-		// create call-ID
-		CallIdHeader callid = MessageHandlerHelper.createCallIdHeader(Integer
-		        .toHexString(remotetag.nextInt()), LOOP_BACK_ADDRESS,
-		        headerFactory);
 
 		// create request
 		request = MessageHandlerHelper.createRequest(requestURI,

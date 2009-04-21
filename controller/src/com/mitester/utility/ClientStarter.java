@@ -32,10 +32,13 @@
  */
 package com.mitester.utility;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.logging.Logger;
 
 /**
@@ -49,35 +52,13 @@ public class ClientStarter {
 	private static final Logger LOGGER = MiTesterLog
 			.getLogger(ClientStarter.class.getName());
 
-	// Native APIs 
-	public native String getProcessDetails();
-
-	public native int killProcess(String processBefStart,
-			String processAfStart, String processName);
-
-	public native int startApplication(String testAppPath);
-
 	private static final String OS_NAME = System.getProperty("os.name");
 
 	private static final String LINE_SEPARATOR = System
 			.getProperty("line.separator");
-
-	// load the killApp library 
-	static {
-
-		try {
-			if (OS_NAME.startsWith("Windows")) {
-				String dllPath = new java.io.File(".").getCanonicalPath()
-						+ "\\native\\windows\\miTester.dll";
-				System.load(dllPath);
-			}
-		} catch (IOException ex) {
-			TestUtility.printError("Error at loading miTester.dll", ex);
-		} catch (Exception ex) {
-			TestUtility.printError("Error at loading miTester.dll", ex);
-		}
-
-	}
+	private static final String FILE_SEPARATOR = System
+			.getProperty("file.separator");
+	private static final String SEMI_COLON_SEPARATOR = ";";
 
 	public ClientStarter() {
 	}
@@ -94,33 +75,70 @@ public class ClientStarter {
 			throws NullPointerException, IllegalArgumentException,
 			InterruptedException, IOException {
 		boolean isClientStart = false;
-		if (OS_NAME.startsWith("Linux")) {
+		if ((OS_NAME.startsWith("Linux")) || (OS_NAME.startsWith("SunOS"))
+				|| (OS_NAME.startsWith("Solaris"))
+				|| (OS_NAME.startsWith("Mac"))) {
 			FileWriter fiw = null;
 			BufferedWriter put = null;
-			int shFileindex = testApplicationPath.lastIndexOf("/");
+			int shFileindex = testApplicationPath.lastIndexOf(FILE_SEPARATOR);
 			String workspacePath = new java.io.File(".").getCanonicalPath();
-			String shPath = workspacePath + "/" + "testApp.sh";
+			String shPath = workspacePath + FILE_SEPARATOR + "testApp.sh";
 			fiw = new FileWriter(shPath);
 			put = new BufferedWriter(fiw);
 			put.write("cd " + testApplicationPath.substring(0, shFileindex));
 			put.write(LINE_SEPARATOR);
-			put.write("sh ./"
+			put.write("sh ."
+					+ FILE_SEPARATOR
 					+ testApplicationPath.substring(shFileindex + 1,
 							testApplicationPath.length()));
 			put.write(LINE_SEPARATOR);
 			put.close();
 			fiw.close();
-			String cmd = "bash " + shPath;
+			String cmd[] = { "bash", shPath };
 			Runtime.getRuntime().exec(cmd);
 			isClientStart = true;
 
 		} else if (OS_NAME.startsWith("Windows")) {
-			int ret = this.startApplication(testApplicationPath);
-			if (ret == 0) {
-				isClientStart = false;
-			} else {
-				isClientStart = true;
+			FileWriter fiw = null;
+			BufferedWriter put = null;
+			String ClientPath = testApplicationPath;
+			int batFileindex1 = ClientPath.lastIndexOf("/");
+			int batFileindex2 = ClientPath.lastIndexOf("\\");
+			String batchPath = null;
+			if (batFileindex1 >= 0) {
+				batchPath = ClientPath.substring(0, batFileindex1) + "/"
+						+ "runExe.bat";
+			} else if (batFileindex2 >= 0) {
+				batchPath = ClientPath.substring(0, batFileindex2) + "/"
+						+ "runExe.bat";
 			}
+
+			fiw = new FileWriter(batchPath);
+			put = new BufferedWriter(fiw);
+			if (batFileindex1 >= 0) {
+				put.write(ClientPath.substring(batFileindex1 + 1, ClientPath
+						.length()));
+			} else if (batFileindex2 >= 0) {
+				put.write(ClientPath.substring(batFileindex2 + 1, ClientPath
+						.length()));
+			}
+
+			put.write(LINE_SEPARATOR);
+			put.close();
+			fiw.close();
+
+			if (batFileindex1 >= 0) {
+				String cmd1[] = { "cmd", "/c", "start", "/B", "/D",
+						ClientPath.substring(0, batFileindex1 + 1),
+						"runExe.bat" };
+				Runtime.getRuntime().exec(cmd1).waitFor();
+			} else if (batFileindex2 >= 0) {
+				String cmd2[] = { "cmd", "/c", "start", "/B", "/D",
+						ClientPath.substring(0, batFileindex2 + 1),
+						"runExe.bat" };
+				Runtime.getRuntime().exec(cmd2).waitFor();
+			}
+			isClientStart = true;
 		}
 
 		return isClientStart;
@@ -146,36 +164,30 @@ public class ClientStarter {
 			throws NullPointerException, IllegalArgumentException,
 			InterruptedException, IOException {
 		boolean isClientStop = false;
-		if (OS_NAME.startsWith("Linux")) {
-			String shPath = new java.io.File(".").getCanonicalPath() + "/"
-					+ "testApp.sh";
+		if ((OS_NAME.startsWith("Linux")) || (OS_NAME.startsWith("SunOS"))
+				|| (OS_NAME.startsWith("Solaris"))
+				|| (OS_NAME.startsWith("Mac"))) {
+			String shPath = new java.io.File(".").getCanonicalPath()
+					+ FILE_SEPARATOR + "testApp.sh";
 
 			if (TestUtility.isFileExist(shPath)) {
 				new File(shPath).delete();
 
 			}
-			String processes[] = processAfStart.split(";");
+			String processes[] = processAfStart.split(SEMI_COLON_SEPARATOR);
 			LOGGER.info("no of processes " + processes.length);
 			for (int i = 0; i < processes.length; i++) {
-				String procPath = "/proc/" + processes[i];
-				if ((TestUtility.isFileExist(procPath)))
-				{
-					Runtime.getRuntime().exec("kill -9 " + processes[i]);
-				}
+				Runtime.getRuntime().exec("kill -9 " + processes[i]);
 			}
 			isClientStop = true;
 
 		} else if (OS_NAME.startsWith("Windows")) {
-			int batFileindex = testApplicationPath.lastIndexOf("/");
-			String exeName = testApplicationPath.substring(batFileindex + 1,
-					testApplicationPath.length());
-			int ret = this
-					.killProcess(processBefStart, processAfStart, exeName);
-			if (ret == 0) {
-				isClientStop = false;
-			} else {
-				isClientStop = true;
+			String processes[] = processAfStart.split(SEMI_COLON_SEPARATOR);
+			LOGGER.info("no of processes " + processes.length);
+			for (int i = 0; i < processes.length; i++) {
+				Runtime.getRuntime().exec("tskill " + processes[i]);
 			}
+			isClientStop = true;
 		}
 		return isClientStop;
 	}
@@ -184,11 +196,12 @@ public class ClientStarter {
 	 * This method return the Win32 Processes currently running on windows
 	 * 
 	 * @return is a String object represents list of processes
+	 * @throws IOException
 	 */
-	public String getProcessInfo() {
+	public String getProcessInfo() throws IOException {
 		String processDetails = null;
 
-		if (OS_NAME.startsWith("Linux")) {
+		if ((OS_NAME.startsWith("SunOS")) || (OS_NAME.startsWith("Solaris"))) {
 
 			StringBuilder processIds = new StringBuilder();
 
@@ -198,13 +211,77 @@ public class ClientStarter {
 
 			for (int i = 0; i < processList.length; i++) {
 				processIds.append(processList[i]);
-				processIds.append(";");
+				processIds.append(SEMI_COLON_SEPARATOR);
+			}
+
+			processDetails = processIds.toString();
+		}
+
+		else if ((OS_NAME.startsWith("Linux")) || (OS_NAME.startsWith("Mac"))) {
+
+			StringBuilder tempbuf = new StringBuilder();
+
+			StringBuilder processIds = new StringBuilder();
+
+			Process p = Runtime.getRuntime().exec("ps x");
+
+			int c = -1;
+
+			InputStream inputStream = p.getInputStream();
+
+			while ((c = inputStream.read()) != -1) {
+
+				tempbuf.append((char) c);
+			}
+
+			inputStream.close();
+
+			String temp[] = tempbuf.toString().split(LINE_SEPARATOR);
+
+			for (int i = 0; i < temp.length; i++) {
+
+				String line = temp[i];
+
+				line = line.trim();
+
+				if (line.startsWith("PID")) {
+					continue;
+				} else {
+					processIds.append(line.substring(0, line.indexOf(" ")));
+					processIds.append(SEMI_COLON_SEPARATOR);
+
+				}
 			}
 
 			processDetails = processIds.toString();
 
 		} else if (OS_NAME.startsWith("Windows")) {
-			return this.getProcessDetails();
+
+			String line;
+
+			StringBuilder processIds = new StringBuilder();
+
+			Process p = Runtime.getRuntime().exec(
+					System.getenv("windir") + "\\system32\\" + "tasklist.exe");
+
+			BufferedReader input = new BufferedReader(new InputStreamReader(p
+					.getInputStream()));
+
+			while ((line = input.readLine()) != null) {
+				int iConsole = line.trim().indexOf(" Console");
+				if (iConsole >= 0) {
+					String[] consoleSplit = line.trim().split(" Console");
+					if (consoleSplit.length != 0) {
+						String str1 = consoleSplit[0];
+						int position = str1.lastIndexOf("  ");
+						String pids = (String) str1.substring(position, str1
+								.length());
+						processIds.append(pids.trim() + SEMI_COLON_SEPARATOR);
+					}
+				}
+			}
+			input.close();
+			processDetails = processIds.toString();
 		}
 		return processDetails;
 	}

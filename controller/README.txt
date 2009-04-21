@@ -1,6 +1,6 @@
-miTester for SIP - Release Version 1.0
+miTester for SIP - Release Version 1.1
 ---------------------------------------
-Date: February 25th, 2009
+Date: April 21th, 2009
 
 Project Lead/Maintainer (2009-current): Mobax
 
@@ -12,23 +12,28 @@ Licensing Terms
 
 Note:
 -----
-- Source (holds the complete source and dependent jars to build miTester)
+- controller (holds the complete source and dependent jars to build miTester)
 
 	- lib (contains the dependent jars to build miTester)
 		- jain-sip-api-1.2.jar
 		- jain-sip-ri-1.2.90.jar
 		- log4j-1.2.15.jar
+                - activation.jar
+                - jaxb-api-2.0.jar
+                - jaxb-impl-2.0.jar
+                - jaxb-xjc-2.0.jar
+                - jsr173_1.0_api.jar
 
-	- native (Mandatory for Windows platform)
-		- windows
-			- miTester.dll
-	- Script_Path (holds Client and Server Scripts)
-		- Client (holds Client Script)
-			- Sample_Script_Client.xml (Sample Client Script)
-		- Server (holds Server Script)
-			- Sample_Script_Server.xml (Sample Server Script)
-		- miTester.properties
-	- src 
+
+	- scripts (holds client and server Scripts)
+		- client (holds Client Script)
+			- Sample_Client_Script.xml (Sample Client Script)
+		- server (holds Server Script)
+			- Sample_Server_Script.xml (Sample Server Script)
+
+	- miTester.properties (property file)
+	
+        - src
 		- com (holds the source files)
 
 

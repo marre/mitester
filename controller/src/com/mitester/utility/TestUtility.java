@@ -57,6 +57,9 @@ public class TestUtility {
 	private static final Logger LOGGER = MiTesterLog
 			.getLogger(TestUtility.class.getName());
 
+	private static final String LINE_SEPARATOR = System
+			.getProperty("line.separator");
+
 	private static final DecimalFormat TWO_DIGIT_FORMAT = new DecimalFormat(
 			"00");
 
@@ -136,12 +139,12 @@ public class TestUtility {
 				isTestsAvailable = true;
 			} else if (isTestsMisMatced) {
 				isTestsAvailable = false;
-				System.out
-						.println(" both Client Tests and Server Tests are Mis-Matched");
+				TestUtility
+						.printMessage(" both Client Tests and Server Tests are Mis-Matched");
 				break;
 			} else {
 				isTestsAvailable = false;
-				System.out.println(clientTestID
+				TestUtility.printMessage(clientTestID
 						+ " is not available in the server script");
 				break;
 			}
@@ -153,7 +156,7 @@ public class TestUtility {
 	 * This method is called to print the message in the console window
 	 * 
 	 * @param message
-	 *            is a String message going to be printed on the console window
+	 *            String object printed on the console window
 	 */
 	public static void printMessage(String message) {
 		try {
@@ -166,25 +169,25 @@ public class TestUtility {
 	}
 
 	/**
-	 * This method is called to print the error message in the console window
+	 * This method is used to print the error message in the console window
 	 * 
 	 * @param message
-	 *            is a String message going to be printed on the console window
+	 *            String object printed on the console window
 	 */
 	public static void printError(String errorMessage, Exception exception) {
 		try {
 			LOGGER.severe(errorMessage + " " + exception);
 			SYSTEM_ERR.write(errorMessage);
-			SYSTEM_ERR.write("\n");
+			SYSTEM_ERR.write(LINE_SEPARATOR);
 			SYSTEM_ERR.flush();
 		} catch (IOException ex) {
 		}
 	}
 
 	/**
-	 * This method is called for reading the message from the console window
+	 * This method is used to read the message from the console window
 	 * 
-	 * @return is a Srting object
+	 * @return String object
 	 */
 	public static String readMessage() {
 		try {
@@ -213,7 +216,7 @@ public class TestUtility {
 	/**
 	 * This method return the time as String format
 	 * 
-	 * @return is a String object represents current time
+	 * @return String object represents current time
 	 */
 	public static String getTime() {
 
@@ -235,8 +238,8 @@ public class TestUtility {
 	 * check the characters in string are digits
 	 * 
 	 * @param processId
-	 *            is the name of the process id
-	 * @return is a boolean value represents true if all the characters of the
+	 *            name of the process id
+	 * @return boolean value represents true if all the characters of the
 	 *         processId are digits
 	 */
 
@@ -258,7 +261,7 @@ public class TestUtility {
 	 * Returns InetAddress of the Client IP address
 	 * 
 	 * @param ipAddress
-	 *            is a string points the Client IP address
+	 *            string object points the Client IP address
 	 * @return InetAddress of the given IP address
 	 */
 	public static InetAddress getHostAddress(String ipAddress) {

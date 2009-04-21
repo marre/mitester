@@ -34,6 +34,7 @@
  */
 package com.mitester.sipserver.sipmessagehandler;
 
+import static com.mitester.sipserver.SipServerConstants.SERVER_REQUEST;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_DISPLAY_NAME;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_PORT;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_USER_NAME;
@@ -67,6 +68,8 @@ import javax.sip.header.ToHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 
+import com.mitester.sipserver.ProcessSIPMessage;
+
 /**
  * A method to cancel the request before the request is answered.
  * 
@@ -85,7 +88,7 @@ public class CANCELRequestHandler {
 	 * @throws InvalidArgumentException
 	 * @throws SipException
 	 */
-	public static Request createCANCELRequest(SIPMessage sipmsg)
+	public static Request createCANCELRequest(SIPMessage sipmsg,String dialog)
 	        throws NullPointerException, java.text.ParseException,
 	        InvalidArgumentException, SipException {
 		MessageFactoryImpl messageFactoryImpl = new MessageFactoryImpl();
@@ -108,10 +111,23 @@ public class CANCELRequestHandler {
 			long invitecseq = sipmsg.getCSeq().getSeqNumber();
 			CSeqHeader cseq = MessageHandlerHelper.createCSeqHeader(invitecseq,
 			        Request.CANCEL, headerFactory);
-
+			CallIdHeader callid;
+			FromHeader fromHeader;
+			ToHeader toHeader;
+			if(dialog == null) {
+				callid = sipmsg.getCallId();
+				fromHeader = sipmsg.getFrom();
+				toHeader = sipmsg.getTo();
+			} else {
+				SIPMessage sipMsg = ProcessSIPMessage.getSIPMessage(dialog, Request.CANCEL,
+				        SERVER_REQUEST);
+				callid = sipMsg.getCallId();
+				fromHeader= sipMsg.getFrom();
+				toHeader = sipMsg.getTo();
+			}
 			request = MessageHandlerHelper.createRequest(requestURI,
-			        Request.CANCEL, sipmsg.getCallId(), cseq, sipmsg.getFrom(),
-			        sipmsg.getTo(), viaHeaders, maxfwd, messageFactoryImpl);
+			        Request.CANCEL, callid, cseq, fromHeader,
+			        toHeader, viaHeaders, maxfwd, messageFactoryImpl);
 
 			request.setMethod(Request.CANCEL);
 		} else {

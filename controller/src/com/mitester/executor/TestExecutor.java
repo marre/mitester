@@ -35,6 +35,9 @@ package com.mitester.executor;
 import static com.mitester.executor.ExecutorConstants.TEST_MODE;
 import static com.mitester.utility.ConfigurationProperties.CONFIG_INSTANCE;
 
+import java.io.File;
+import java.io.IOException;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -74,6 +77,11 @@ public class TestExecutor {
 
 	private Adapter sipAdapter = null;
 
+	private boolean isClientExist = false;
+
+	private static final String FILE_SEPARATOR = System
+			.getProperty("file.separator");
+
 	/**
 	 * initialize the variables
 	 * 
@@ -110,7 +118,7 @@ public class TestExecutor {
 				.getValue(TEST_MODE))) {
 		case ADVANCED: {
 
-			// Execute both client and server Tests */
+			// Execute both client and server Tests
 			executeAdvancedTest(clientTests, serverTests);
 
 			break;
@@ -123,11 +131,17 @@ public class TestExecutor {
 		}
 
 		}
-
 		// stop client
-		if (sipAdapter.isRunning())
+		if (isClientExist && sipAdapter.isConnected()) {
+			LOGGER
+					.info("stopping client as all the test executions are completed");
 			sipAdapter.stop();
+		} else {
 
+			// remove shell if exist
+			removeShell();
+
+		}
 		// shut down the thread execution
 		shutdownClientExecutor();
 		shutdownServerExecutor();
@@ -156,76 +170,104 @@ public class TestExecutor {
 			LOGGER.info("miTester running in ADVANCED mode");
 
 			for (com.mitester.jaxbparser.client.TEST clientTest : clientTests) {
-				clientLatch = new CountDownLatch(1);
-				serverLatch = new CountDownLatch(1);
+
 				String clientTestID = clientTest.getTESTID();
 				TestUtility.printMessage(clientTestID + " Started");
 				LOGGER.info(clientTestID + " Started");
+				
+				boolean isExecutionFailed = false;
 
-				for (com.mitester.jaxbparser.server.TEST serverTest : serverTests) {
+				BigInteger count = clientTest.getCOUNT();
 
-					String serverTestID = serverTest.getTESTID();
-					if (clientTestID.equals(serverTestID)) {
+				int loopCount = 1;
 
-						serverExecutors.execute(runServerTests
-								.frameServerRunnable(serverTest));
+				if (count != null) {
+					loopCount = count.intValue();
+				}
+
+				for (int i = 0; i < loopCount; i++) {
+					
+					clientLatch = new CountDownLatch(1);
+					serverLatch = new CountDownLatch(1);
+
+					for (com.mitester.jaxbparser.server.TEST serverTest : serverTests) {
+
+						String serverTestID = serverTest.getTESTID();
+						if (clientTestID.equals(serverTestID)) {
+
+							serverExecutors.execute(runServerTests
+									.frameServerRunnable(serverTest));
+							break;
+						}
+
+					}
+
+					clientExecutors.execute(runClientTests
+							.frameClientRunnable(clientTest));
+
+					// waiting for client test to get finish
+					clientLatch.await();
+
+					// waiting for server test to get finish
+					serverLatch.await();
+
+					if ((!runClientTests.getClientTestStart())
+							|| (!runServerTests.getServerTestStart())) {
+						isExecutionFailed = true;
 						break;
 					}
 
+					if (sipAdapter.isClosed()) {
+
+						// clean up the socket
+						sipAdapter.cleanUpSocket();
+					}
+
+					// update test result
+					if ((runClientTests.getClientTestResult())
+							&& (runServerTests.getServerTestResult())) {
+						TestResult.updateResult(clientTestID, true);
+						if (!sipAdapter.checkClientAvailability()) {
+							// clean up the socket
+							sipAdapter.cleanUpSocket();
+							isClientExist = false;
+							
+						} else {
+							isClientExist = true;
+						}
+
+					} else {
+						TestResult.updateResult(clientTestID, false);
+						LOGGER.info("check whether client stopped or not");
+
+						if (!sipAdapter.isClosed() && sipAdapter.isStopCalled()) {
+
+							TestUtility
+									.printMessage("Error while stopping the Client");
+							isExecutionFailed = true;
+                           break;
+						}
+
+					}
+
 				}
-
-				clientExecutors.execute(runClientTests
-						.frameClientRunnable(clientTest));
-
-				// waiting for client test to get finish
-				clientLatch.await();
-
-				// waiting for server test to get finish
-				serverLatch.await();
-
-				if ((!runClientTests.getClientTestStart())
-						|| (!runServerTests.getServerTestStart())) {
+				
+				if(isExecutionFailed)
 					break;
-				}
-
-				if (sipAdapter.isClosed()) {
-
-					// clean up the socket
-					sipAdapter.cleanUpSocket();
-				}
-
-				// update test result
-				if ((runClientTests.getClientTestResult())
-						&& (runServerTests.getServerTestResult())) {
-					TestResult.updateResult(clientTestID, true);
-				} else {
-					TestResult.updateResult(clientTestID, false);
-				}
 
 				TestUtility.printMessage(clientTestID + " Ended");
 				LOGGER.info(clientTestID + " Stopped");
 
-				if ((!runClientTests.getClientTestResult())
-						|| (!runServerTests.getServerTestResult())) {
-					LOGGER.info("check whether client stopped or not");
-					if ((!sipAdapter.isClosedDefault())
-							&& (!sipAdapter.isClosed())) {
-						TestUtility
-								.printMessage("Error at Stopping the Client");
-						break;
-					}
-
-				}
 			}
 
 		} catch (NullPointerException ex) {
-			TestUtility.printError("Error at executing client test ", ex);
+			TestUtility.printError("Error while executing client test ", ex);
 		} catch (InterruptedException ex) {
-			TestUtility.printError("Error at executing client test ", ex);
+			TestUtility.printError("Error while executing client test ", ex);
 		} catch (RuntimeException ex) {
-			TestUtility.printError("Error at executing client test ", ex);
+			TestUtility.printError("Error while executing client test ", ex);
 		} catch (Exception ex) {
-			TestUtility.printError("Error at executing client test ", ex);
+			TestUtility.printError("Error while executing client test ", ex);
 		}
 	}
 
@@ -242,43 +284,64 @@ public class TestExecutor {
 		try {
 
 			LOGGER.info("miTester running in USER mode");
+			
+			boolean isExecutionFailed = false;
 
 			for (com.mitester.jaxbparser.server.TEST serverTest : serverTests) {
 
 				String serverTestID = serverTest.getTESTID();
 				TestUtility.printMessage(serverTestID + " Started");
 				LOGGER.info(serverTestID + " Started");
-				serverLatch = new CountDownLatch(1);
-				serverExecutors.execute(runServerTests
-						.frameServerRunnable(serverTest));
 
-				// waiting for server thread to get finish
-				serverLatch.await();
+				BigInteger count = serverTest.getCOUNT();
 
-				if ((!runServerTests.getServerTestStart())) {
+				int loopCount = 1;
+
+				if (count != null) {
+					loopCount = count.intValue();
+				}
+
+				for (int i = 0; i < loopCount; i++) {
+
+					serverLatch = new CountDownLatch(1);
+					serverExecutors.execute(runServerTests
+							.frameServerRunnable(serverTest));
+
+					// waiting for server thread to get finish
+					serverLatch.await();
+
+					if (!runServerTests.getServerTestStart()) {
+						isExecutionFailed= true;
+						break;
+					}
+
+					// update test result
+					if ((runServerTests.getServerTestResult())) {
+
+						TestResult.updateResult(serverTestID, true);
+
+					} else {
+						TestResult.updateResult(serverTestID, false);
+					}
+
+				}
+				
+				if(isExecutionFailed)
 					break;
-				}
-
-				// update test result
-				if ((runServerTests.getServerTestResult())) {
-					TestResult.updateResult(serverTestID, true);
-				} else {
-					TestResult.updateResult(serverTestID, false);
-				}
-
+				
 				TestUtility.printMessage(serverTestID + " Ended");
 				LOGGER.info(serverTestID + " Stopped");
 
 			}
 
 		} catch (NullPointerException ex) {
-			TestUtility.printError("Error at executing server test ", ex);
+			TestUtility.printError("Error while executing server test ", ex);
 		} catch (InterruptedException ex) {
-			TestUtility.printError("Error at executing server test ", ex);
+			TestUtility.printError("Error while executing server test ", ex);
 		} catch (RuntimeException ex) {
-			TestUtility.printError("Error at executing server test ", ex);
+			TestUtility.printError("Error while executing server test ", ex);
 		} catch (Exception ex) {
-			TestUtility.printError("Error at executing server test ", ex);
+			TestUtility.printError("Error while executing server test ", ex);
 		}
 	}
 
@@ -351,24 +414,25 @@ public class TestExecutor {
 		}
 
 	}
+	
+	/**
+	 * remove the shell file
+	 * 
+	 */
 
-	// /**
-	// * stop the client test execution
-	// */
-	//
-	// public void stopClientExecution() {
-	//
-	// runClientTests.stopClientTestExecution();
-	//
-	// }
-	//
-	// /**
-	// * stop the server test execution
-	// */
-	//
-	// public void stopServerExecution() {
-	//
-	// runServerTests.stopServerTestExecution();
-	// }
+	private void removeShell() {
 
+		try {
+			String shPath = new java.io.File(".").getCanonicalPath()
+					+ FILE_SEPARATOR + "testApp.sh";
+
+			if (TestUtility.isFileExist(shPath)) {
+				new File(shPath).delete();
+
+			}
+		} catch (IOException e) {
+
+		}
+
+	}
 }

@@ -78,7 +78,7 @@ public class ServerScriptRunner {
 
 	private final float SERVER_SEND_DELAY;
 
-	private boolean isClosedSocket = false;
+	private volatile boolean isSocketCloseCalled = false;
 
 	private boolean isServerTestSucceed = false;
 
@@ -154,7 +154,10 @@ public class ServerScriptRunner {
 
 		return new Runnable() {
 			public void run() {
+
 				try {
+
+					int actionCount = 0;
 
 					com.mitester.jaxbparser.server.ACTION action = null;
 
@@ -163,8 +166,6 @@ public class ServerScriptRunner {
 					List<Object> serverActions = serverTest.getACTIONOrWAIT();
 
 					boolean isWAIT = false;
-
-					int actionCount = 0;
 
 					int noOfServerActions = serverActions.size();
 
@@ -206,13 +207,6 @@ public class ServerScriptRunner {
 
 							} else if (action.getSEND() != null) {
 
-								if ((testExecutor.getClientCountDownLatch() != null)
-										&& (testExecutor
-												.getClientCountDownLatch()
-												.getCount() == 0)) {
-									break;
-								}
-
 								// send the message to SUT
 								if (!sendSIPMessage(action))
 									break;
@@ -239,35 +233,32 @@ public class ServerScriptRunner {
 				} catch (SocketException ex) {
 					TestUtility
 							.printMessage("UDP datagram socket closed forcefully");
-					isServerTestSucceed = false;
 				} catch (NullPointerException ex) {
-					TestUtility.printError("Error at running server test", ex);
-					isServerTestSucceed = false;
+					TestUtility.printError("Error while executing server test",
+							ex);
 				} catch (ParseException ex) {
-					TestUtility.printError("Error at processing SIP message",
-							ex);
-					isServerTestSucceed = false;
+					TestUtility.printError(
+							"Error while processing SIP message", ex);
 				} catch (SipException ex) {
-					TestUtility.printError("Error at processing SIP message",
-							ex);
-					isServerTestSucceed = false;
+					TestUtility.printError(
+							"Error while processing SIP message", ex);
 				} catch (InvalidArgumentException ex) {
-					TestUtility.printError("Error at running server test", ex);
-					isServerTestSucceed = false;
+					TestUtility.printError("Error while running server test",
+							ex);
 				} catch (IOException ex) {
-					TestUtility.printError("Error at running server test", ex);
-					isServerTestSucceed = false;
+					TestUtility.printError("Error while running server test",
+							ex);
 				} catch (IndexOutOfBoundsException ex) {
-					TestUtility.printError("Error at running server test", ex);
-					isServerTestSucceed = false;
+					TestUtility.printError("Error while running server test",
+							ex);
 				} finally {
 
 					try {
-
+						
 						// stop timer
 						stopServerTimer();
 
-						if (!isClosedSocket) {
+						if (!isSocketCloseCalled) {
 
 							// close UDP socket
 							udpCommn.closeUdpSocket();
@@ -280,6 +271,7 @@ public class ServerScriptRunner {
 							LOGGER.info("UDP socket closed ...");
 
 						if (isServerTestSucceed) {
+							
 							isServerTestSucceed = sipHeaderValidator
 									.validateHeaders();
 							TestUtility
@@ -344,11 +336,14 @@ public class ServerScriptRunner {
 				public void run() {
 					try {
 
+						serverTestEndTimer.cancel(true);
 						serverTestEndTimer = null;
-						isClosedSocket = true;
-
+						isSocketCloseCalled = true;
+						
 						// close UDP socket
 						udpCommn.closeUdpSocket();
+						
+						
 
 					} catch (Exception ex) {
 
@@ -364,9 +359,10 @@ public class ServerScriptRunner {
 	 * test
 	 */
 	private void cleanUpServerTest() {
-
+		
+		isServerTestSucceed = false;
 		serverTestEndTimer = null;
-		isClosedSocket = false;
+		isSocketCloseCalled = false;
 		isServerTestStart = false;
 
 	}
@@ -390,7 +386,7 @@ public class ServerScriptRunner {
 	}
 
 	/**
-	 * initialize the UDp data gram
+	 * initialize the UDP data gram
 	 * 
 	 * @throws SocketException
 	 * @throws IOException
@@ -526,6 +522,9 @@ public class ServerScriptRunner {
 			// receive UDP data gram
 			packet = udpCommn.receiveUdpMessage();
 
+			LOGGER.info(LINE_SEPARATOR + INCOMING_SIP_MESSAGE + LINE_SEPARATOR
+					+ packet + INCOMING_SIP_MESSAGE);
+
 			// process SipMessage
 			SIPMessage sipMsg = ProcessSIPMessage.processSIPMessage(packet,
 					INCOMING_MSG);
@@ -537,18 +536,14 @@ public class ServerScriptRunner {
 						&& action.getValue().startsWith(method)) {
 
 					TestUtility.printMessage(packet);
-					
+
 					/* add the message for validation */
 					sipHeaderValidator.setheaderList(sipMsg);
 
-					LOGGER.info(LINE_SEPARATOR + INCOMING_SIP_MESSAGE
-					        + LINE_SEPARATOR + packet + INCOMING_SIP_MESSAGE);
-					LOGGER.info("After Processing Received SIP Message");
-					LOGGER.info(LINE_SEPARATOR + INCOMING_SIP_MESSAGE
-					        + LINE_SEPARATOR + sipMsg.toString() + INCOMING_SIP_MESSAGE);
 					break;
 
 				} else if (action.getRECV().startsWith(RESPONSE_MSG)) {
+
 					if (sipMsg.getFirstLine().startsWith("SIP/2.0")) {
 
 						String serverActionValue = action.getValue();
@@ -570,15 +565,9 @@ public class ServerScriptRunner {
 						if (methodName.equals(method)
 								&& responseCode == resCode) {
 							TestUtility.printMessage(packet);
-							
+
 							/* add the message for validation */
 							sipHeaderValidator.setheaderList(sipMsg);
-							
-							
-							
-							LOGGER.info(LINE_SEPARATOR + INCOMING_SIP_MESSAGE
-									+ LINE_SEPARATOR + packet
-									+ INCOMING_SIP_MESSAGE);
 							break;
 
 						} else {
@@ -594,11 +583,14 @@ public class ServerScriptRunner {
 						}
 					} else {
 
+						LOGGER.info("ignored the incoming SIP message");
+
 						// remove the added sip message
 						ProcessSIPMessage.removeSipMessageFromList();
-
 					}
 				} else {
+
+					LOGGER.info("ignored the incoming SIP message");
 
 					// remove the added sip message
 					ProcessSIPMessage.removeSipMessageFromList();

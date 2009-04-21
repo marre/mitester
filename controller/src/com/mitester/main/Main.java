@@ -87,7 +87,7 @@ public class Main {
 
 			SIPHeaderValidator sipHeaderValidator = new SIPHeaderValidator();
 
-			/* load server configuration properties */
+			// load server configuration properties
 			sipHeaderValidator.loadServerConfigProperties();
 
 			Adapter sipAdapter = new SipAdapter();
@@ -99,11 +99,11 @@ public class Main {
 
 			if (System.getProperty("os.name").startsWith("Linux")) {
 
-				/* for checking CR, LF cases */
+				// for checking CR, LF cases
 				System.setProperty("line.separator", setLineSeparator);
 			}
 
-			/* Get the start time of test execution */
+			// Get the start time of test execution
 			startTime = TestUtility.getTime();
 
 			if (TestMode.getTestModefromString(
@@ -117,14 +117,14 @@ public class Main {
 					if (TestUtility.checkTestsAvailablity(clientScenarios,
 							serverScenarios)) {
 
-						/* Execute the tests */
+						// Execute the tests
 						testExecutor.executeTest(clientScenarios,
 								serverScenarios);
 
-						/* Get the end time of test execution */
+						// Get the end time of test execution
 						endTime = TestUtility.getTime();
 
-						/* display test result */
+						// display test result
 						TestResult.printResult(startTime, endTime);
 
 					}
@@ -137,20 +137,20 @@ public class Main {
 
 				if ((serverScenarios != null)) {
 
-					/* Execute the tests */
+					// Execute the tests
 					testExecutor.executeTest(clientScenarios, serverScenarios);
 
-					/* Get the end time of test execution */
+					// Get the end time of test execution
 					endTime = TestUtility.getTime();
 
-					/* display test result */
+					// display test result
 					TestResult.printResult(startTime, endTime);
 
 				}
 
 			}
 
-			/* reset the same as it was set earlier */
+			// reset the same as it was set earlier
 			if (System.getProperty("os.name").startsWith("Linux")) {
 
 				System.setProperty("line.separator", getLineSeperator);
@@ -158,7 +158,7 @@ public class Main {
 
 		}
 
-		/* close the input, output and error streams */
+		// close the input, output and error streams
 		TestUtility.close();
 
 		LOGGER.info("miTester [STOPPED]");
@@ -196,16 +196,20 @@ public class Main {
 					"Specified client Script path doesn't exist", ex);
 			return null;
 		} catch (IOException ex) {
-			TestUtility.printError("Error at parsing Client Test scripts", ex);
+			TestUtility.printError("Error while parsing Client Test scripts",
+					ex);
 			return null;
 		} catch (NullPointerException ex) {
-			TestUtility.printError("Error at parsing Client Test scripts", ex);
+			TestUtility.printError("Error while parsing Client Test scripts",
+					ex);
 			return null;
 		} catch (JAXBException ex) {
-			TestUtility.printError("Error at parsing Client Test scripts", ex);
+			TestUtility.printError("Error while parsing Client Test scripts",
+					ex);
 			return null;
 		} catch (Exception ex) {
-			TestUtility.printError("Error at parsing Client Test scripts", ex);
+			TestUtility.printError("Error while parsing Client Test scripts",
+					ex);
 			return null;
 		}
 
@@ -240,18 +244,21 @@ public class Main {
 					"Specified server Script path doesn't exist", ex);
 			return null;
 		} catch (IOException ex) {
-			TestUtility.printError("Error at parsing Server Test scripts", ex);
+			TestUtility.printError("Error while parsing Server Test scripts",
+					ex);
 			return null;
 		} catch (NullPointerException ex) {
-			TestUtility.printError("Error at parsing Server Test scripts", ex);
+			TestUtility.printError("Error while parsing Server Test scripts",
+					ex);
 			return null;
 		} catch (JAXBException ex) {
-			TestUtility.printError("Error at parsing Server Test scripts", ex);
+			TestUtility.printError("Error while parsing Server Test scripts",
+					ex);
 			return null;
 		} catch (Exception ex) {
-			TestUtility.printError("Error at parsing Server Test scripts", ex);
+			TestUtility.printError("Error while parsing Server Test scripts",
+					ex);
 			return null;
 		}
 	}
 }
-

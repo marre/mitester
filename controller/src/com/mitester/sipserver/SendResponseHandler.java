@@ -74,19 +74,26 @@ public class SendResponseHandler {
 		SIPMessage sipMsg = null;
 		Response res = null;
 		String msg = null;
+		String dialog = null;
 		if (action.getCount() != null) {
 			Count = action.getCount().intValue();
+		}
+		if(action.getDialog() != null){
+			dialog = action.getDialog();
 		}
 		String send = action.getValue();
 		int methodindex = send.indexOf("_");
 		String sCode = send.substring(0, methodindex);
 		method = send.substring(methodindex + 1, send.length());
 		statusCode = Integer.parseInt(sCode);
+		
 		sipMsg = ProcessSIPMessage.getSIPMessage(method, method,
 		        SERVER_RESPONSE);
+
 		if (sipMsg != null) {
+			
 			res = ResponseHandler.sendResponseWithCode(statusCode, method,
-			        sipMsg);
+			        sipMsg,dialog);
 			msg = res.toString();
 		}
 		msg = SIPHeaderProcessor

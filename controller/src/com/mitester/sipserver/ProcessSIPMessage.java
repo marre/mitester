@@ -54,12 +54,12 @@ import com.mitester.utility.TestUtility;
  */
 public class ProcessSIPMessage {
 	private static final Logger LOGGER = MiTesterLog
-	        .getLogger(ProcessSIPMessage.class.getName());
+			.getLogger(ProcessSIPMessage.class.getName());
 	private static List<SIPMessage> sipMessages = new ArrayList<SIPMessage>();
 	private static SIPMessage sipMessage = null;
 
 	public static SIPMessage getSIPMessage(String MethodName, String Method,
-	        String Type) {
+			String Type) {
 		if (Type.equals(SipServerConstants.SERVER_REQUEST)) {
 			if (Method != SipServerConstants.ACK_METHOD) {
 				for (int i = 0; i < sipMessages.size(); i++) {
@@ -91,41 +91,40 @@ public class ProcessSIPMessage {
 	}
 
 	public static SIPMessage processSIPMessage(String sipMsgBuf, String type)
-	        throws ParseException, SipException, NullPointerException {
+			throws ParseException, SipException, NullPointerException {
 
 		SIPMessage parsedSipMsg = null;
+		parsedSipMsg = SipParser.parseSipMessage(sipMsgBuf);
+		
 		if ((sipMessages.size() > 0)
-		        && (type.equals(SipServerConstants.INCOMING_MSG))) {
+				&& (type.equals(SipServerConstants.INCOMING_MSG))) {
+			
 			for (int i = 0; i < sipMessages.size(); i++) {
 				SIPMessage getSipMsg = sipMessages.get(i);
-				parsedSipMsg = SipParser.parseSipMessage(sipMsgBuf);
+				
 				if ((getSipMsg.getFirstLine().equals(parsedSipMsg
-				        .getFirstLine()))
-				        && (getSipMsg.getCSeq().equals(parsedSipMsg.getCSeq()))
-				        && (getSipMsg.getCallId().equals(parsedSipMsg
-				                .getCallId()))
-				        && (getSipMsg.getFrom().equals(parsedSipMsg.getFrom()))
-				        && (getSipMsg.getTo().equals(parsedSipMsg.getTo()))
-				        && (getSipMsg.getTopmostVia().getBranch()
-				                .equals(parsedSipMsg.getTopmostVia()
-				                        .getBranch()))) {
+						.getFirstLine()))
+						&& (getSipMsg.getCSeq().equals(parsedSipMsg.getCSeq()))
+						&& (getSipMsg.getCallId().equals(parsedSipMsg
+								.getCallId()))
 
+						&& (getSipMsg.getFrom().equals(parsedSipMsg.getFrom()))
+						&& (getSipMsg.getTo().equals(parsedSipMsg.getTo()))
+						&& (getSipMsg.getTopmostVia().getBranch()
+								.equals(parsedSipMsg.getTopmostVia()
+										.getBranch()))) {
 					TestUtility
-					        .printMessage("SIP message already received hence dropped");
+							.printMessage("SIP message already received hence dropped");
 					LOGGER.info("SIP message already received hence dropped");
 					return null;
-				} else {
-
 				}
 			}
-			
+
 			/* add received sip message */
 			sipMessages.add(parsedSipMsg);
 
 		} else {
-			parsedSipMsg = SipParser.parseSipMessage(sipMsgBuf);
 			sipMessages.add(parsedSipMsg);
-			parsedSipMsg = SipParser.parseSipMessage(sipMsgBuf);
 		}
 		return parsedSipMsg;
 	}

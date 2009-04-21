@@ -102,65 +102,68 @@ public class SendRequestHandler {
 		Request request = null;
 		String send = null;
 		String msg = null;
-
+		String dialog = null;
 		send = action.getValue();
 
 		if (action.getCount() != null) {
 			count = action.getCount().intValue();
 		}
+		if (action.getDialog() != null) {
+			dialog = action.getDialog();
+		}
 		if (send.equalsIgnoreCase(INVITE_METHOD)) {
-			request = INVITERequestHandler.createINVITERequest();
+			request = INVITERequestHandler.createINVITERequest(dialog);
 		} else if (send.equalsIgnoreCase(UPDATE_METHOD)) {
 			String method = UPDATE_METHOD;
 			sipMsg = ProcessSIPMessage.getSIPMessage(INVITE_METHOD, method,
 			        SERVER_REQUEST);
-			request = UPDATERequestHandler.createUPDATERequest(sipMsg);
+			request = UPDATERequestHandler.createUPDATERequest(sipMsg,dialog);
 		} else if (send.equalsIgnoreCase(ACK_METHOD)) {
 			isOriginator = true;
 			String method = ACK_METHOD;
 			sipMsg = ProcessSIPMessage.getSIPMessage(INVITE_METHOD, method,
 			        SERVER_REQUEST);
-			request = ACKRequestHandler.createACKRequest(sipMsg);
+			request = ACKRequestHandler.createACKRequest(sipMsg,dialog);
 		} else if (send.equalsIgnoreCase(BYE_METHOD)) {
 			String method = BYE_METHOD;
 			sipMsg = ProcessSIPMessage.getSIPMessage(ACK_METHOD, method,
 			        SERVER_REQUEST);
-			request = BYERequestHandler.createBYERequest(sipMsg, isOriginator);
+			request = BYERequestHandler.createBYERequest(sipMsg, isOriginator,dialog);
 		} else if (send.equalsIgnoreCase(CANCEL_METHOD)) {
 			String method = CANCEL_METHOD;
 			sipMsg = ProcessSIPMessage.getSIPMessage(INVITE_METHOD, method,
 			        SERVER_REQUEST);
-			request = CANCELRequestHandler.createCANCELRequest(sipMsg);
+			request = CANCELRequestHandler.createCANCELRequest(sipMsg,dialog);
 		} else if (send.equalsIgnoreCase(NOTIFY_METHOD)) {
 			String method = NOTIFY_METHOD;
 			sipMsg = ProcessSIPMessage.getSIPMessage(INVITE_METHOD, method,
 			        SERVER_REQUEST);
-			request = NOTIFYRequestHandler.createNOTIFYRequest(sipMsg);
+			request = NOTIFYRequestHandler.createNOTIFYRequest(sipMsg,dialog);
 		} else if (send.equalsIgnoreCase(PUBLISH_METHOD)) {
-			request = PUBLISHRequestHandler.createPUBLISHRequest();
+			request = PUBLISHRequestHandler.createPUBLISHRequest(dialog);
 		} else if (send.equalsIgnoreCase(SUBSCRIBE_METHOD)) {
-			request = SUBSCRIBERequestHandler.createSUBSCRIBERequest();
+			request = SUBSCRIBERequestHandler.createSUBSCRIBERequest(dialog);
 		} else if (send.equalsIgnoreCase(MESSAGE_METHOD)) {
-			request = MESSAGERequestHandler.createMESSAGERequest();
+			request = MESSAGERequestHandler.createMESSAGERequest(dialog);
 		} else if (send.equalsIgnoreCase(OPTIONS_METHOD)) {
-			request = OPTIONSRequestHandler.createOPTIONSRequest();
+			request = OPTIONSRequestHandler.createOPTIONSRequest(dialog);
 		} else if (send.equalsIgnoreCase(REGISTER_METHOD)) {
-			request = REGISTERRequestHandler.createREGISTERRequest();
+			request = REGISTERRequestHandler.createREGISTERRequest(dialog);
 		} else if (send.equalsIgnoreCase(PRACK_METHOD)) {
 			String method = PRACK_METHOD;
 			sipMsg = ProcessSIPMessage.getSIPMessage(INVITE_METHOD, method,
 			        SERVER_REQUEST);
-			request = PRACKRequestHandler.createPRACKRequest(sipMsg);
+			request = PRACKRequestHandler.createPRACKRequest(sipMsg,dialog);
 		} else if (send.equalsIgnoreCase(INFO_METHOD)) {
 			String method = INFO_METHOD;
 			sipMsg = ProcessSIPMessage.getSIPMessage(INVITE_METHOD, method,
 			        SERVER_REQUEST);
-			request = INFORequestHandler.createINFORequest(sipMsg);
+			request = INFORequestHandler.createINFORequest(sipMsg,dialog);
 		} else if (send.equalsIgnoreCase(REFER_METHOD)) {
 			String method = REFER_METHOD;
 			sipMsg = ProcessSIPMessage.getSIPMessage(INVITE_METHOD, method,
 			        SERVER_REQUEST);
-			request = REFERRequestHandler.createREFERRequest(sipMsg);
+			request = REFERRequestHandler.createREFERRequest(sipMsg,dialog);
 		}
 		msg = request.toString();
 

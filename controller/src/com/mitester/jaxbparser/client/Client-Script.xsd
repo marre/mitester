@@ -18,6 +18,7 @@
       <xs:attribute name="TEST-ID" use="required" type="xs:NCName"/>
       <xs:attribute name="TEST-SUITE"/>
       <xs:attribute name="TYPE" use="required" type="xs:NCName"/>
+      <xs:attribute name="COUNT" type="xs:integer"/>
     </xs:complexType>
   </xs:element>
   <xs:element name="ACTION">

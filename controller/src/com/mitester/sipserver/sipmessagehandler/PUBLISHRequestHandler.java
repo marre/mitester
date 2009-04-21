@@ -34,6 +34,8 @@
  */
 package com.mitester.sipserver.sipmessagehandler;
 
+
+import static com.mitester.sipserver.SipServerConstants.SERVER_REQUEST;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_DISPLAY_NAME;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_PORT;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_USER_NAME;
@@ -44,7 +46,9 @@ import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstant
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.TO_DISPLAY_NAME;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.TO_PORT;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.TO_USER_NAME;
+import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.TRANSPORT;
 import gov.nist.javax.sip.message.MessageFactoryImpl;
+import gov.nist.javax.sip.message.SIPMessage;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -58,12 +62,15 @@ import javax.sip.address.AddressFactory;
 import javax.sip.address.SipURI;
 import javax.sip.header.CSeqHeader;
 import javax.sip.header.CallIdHeader;
+import javax.sip.header.ContactHeader;
 import javax.sip.header.FromHeader;
 import javax.sip.header.HeaderFactory;
 import javax.sip.header.MaxForwardsHeader;
 import javax.sip.header.ToHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
+
+import com.mitester.sipserver.ProcessSIPMessage;
 
 /**
  * A method to create, modify and delete presence/state in another entity which
@@ -82,7 +89,7 @@ public class PUBLISHRequestHandler {
 	 * @throws InvalidArgumentException
 	 * @throws SipException
 	 */
-	public static Request createPUBLISHRequest() throws NullPointerException,
+	public static Request createPUBLISHRequest(String dialog) throws NullPointerException,
 	        java.text.ParseException, InvalidArgumentException, SipException {
 
 		Request request;
@@ -92,28 +99,46 @@ public class PUBLISHRequestHandler {
 		MessageFactoryImpl messageFactoryImpl = new MessageFactoryImpl();
 		List<ViaHeader> viaHeaders = new ArrayList<ViaHeader>();
 		Random remotetag = new Random();
-
-		SipURI fromAddress = MessageHandlerHelper.createSIPURI(FROM_USER_NAME,
+		CallIdHeader callid ;
+		SipURI fromAddress;
+		Address fromNameAddress;
+		FromHeader fromHeader;
+		SipURI toAddress;
+		Address toNameAddress;
+		ToHeader toHeader;
+		if(dialog == null) {
+		fromAddress = MessageHandlerHelper.createSIPURI(FROM_USER_NAME,
 		        LOOP_BACK_ADDRESS, addressFactory);
 		fromAddress.setPort(FROM_PORT);
-		Address fromNameAddress = MessageHandlerHelper.createAddress(
+		fromNameAddress = MessageHandlerHelper.createAddress(
 		        fromAddress, addressFactory);
 		fromNameAddress.setDisplayName(FROM_DISPLAY_NAME);
 		// create from header
-		FromHeader fromHeader = MessageHandlerHelper.createFromHeader(
+		fromHeader = MessageHandlerHelper.createFromHeader(
 		        fromNameAddress, Integer.toHexString(remotetag.nextInt()),
 		        headerFactory);
 
-		SipURI toAddress = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
+		toAddress = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
 		        LOOP_BACK_ADDRESS, addressFactory);
 		toAddress.setPort(TO_PORT);
-		Address toNameAddress = MessageHandlerHelper.createAddress(toAddress,
+		toNameAddress = MessageHandlerHelper.createAddress(toAddress,
 		        addressFactory);
 		toNameAddress.setDisplayName(TO_DISPLAY_NAME);
 		// create to Header
-		ToHeader toHeader = MessageHandlerHelper.createToHeader(toNameAddress,
+		toHeader = MessageHandlerHelper.createToHeader(toNameAddress,
 		        null, headerFactory);
-
+		
+		// create call-ID
+		callid = MessageHandlerHelper.createCallIdHeader(Integer
+		        .toHexString(remotetag.nextInt()), LOOP_BACK_ADDRESS,
+		        headerFactory);
+		} else {
+			SIPMessage sipMsg = ProcessSIPMessage.getSIPMessage(dialog, Request.PUBLISH,
+			        SERVER_REQUEST);
+			callid = sipMsg.getCallId();
+			fromHeader = sipMsg.getFrom();
+			toHeader = sipMsg.getTo();
+		}
 		SipURI requestURI = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
 		        LOOP_BACK_ADDRESS, addressFactory);
 		requestURI.setPort(TO_PORT);
@@ -134,15 +159,28 @@ public class PUBLISHRequestHandler {
 		MaxForwardsHeader maxForwards = MessageHandlerHelper
 		        .createMaxForwardsHeader(MAXFORWARDS, headerFactory);
 
-		// create call-ID
-		CallIdHeader callid = MessageHandlerHelper.createCallIdHeader(Integer
-		        .toHexString(remotetag.nextInt()), LOOP_BACK_ADDRESS,
-		        headerFactory);
+
 
 		// create request
 		request = MessageHandlerHelper.createRequest(requestURI,
 		        Request.PUBLISH, callid, cSeqHeader, fromHeader, toHeader,
 		        viaHeaders, maxForwards, messageFactoryImpl);
+
+		// Create the sip uri for contact header
+		SipURI contactURI = MessageHandlerHelper.createSIPURI(FROM_USER_NAME,
+		        LOOP_BACK_ADDRESS, addressFactory);
+		contactURI.setPort(FROM_PORT);
+		contactURI.setParameter(TRANSPORT, PROTOCOL);
+		Address contactAddress = MessageHandlerHelper.createAddress(contactURI,
+		        addressFactory);
+		contactAddress.setDisplayName(FROM_USER_NAME);
+
+		// create contact header
+		ContactHeader contactHeader = MessageHandlerHelper.createContactHeader(
+		        contactAddress, headerFactory);
+
+		// adding contact header to request
+		request.addHeader(contactHeader);
 
 		return request;
 	}

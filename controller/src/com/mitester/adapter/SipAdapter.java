@@ -77,7 +77,7 @@ public class SipAdapter implements Adapter {
 
 	private boolean isStopped = false;
 
-	private boolean isClosedDefault = true;
+	private boolean isStopCalled = false;
 
 	private String processesBefStart = null;
 
@@ -105,13 +105,13 @@ public class SipAdapter implements Adapter {
 
 	}
 
-	public boolean isRunning() {
+	public boolean isConnected() {
 
 		if ((connection != null) && (connection.isConnected())) {
-			LOGGER.info("client is running...");
+			LOGGER.info("client is connected...");
 			return true;
 		} else {
-			LOGGER.info("client is not running...");
+			LOGGER.info("client is not connected...");
 			return false;
 		}
 	}
@@ -139,11 +139,11 @@ public class SipAdapter implements Adapter {
 
 			serverSocket = new ServerSocket(tcpServerPort);
 
-			/* get the running process details before start the application */
+			// get the running process details before start the application
 			processesBefStart = executeClient.getProcessInfo();
 
-			/* start client */
-			if (!isRunning()) {
+			// start client
+			if (!isConnected()) {
 
 				if (TestUtility.isFileExist(testApplicationPath)) {
 
@@ -163,6 +163,8 @@ public class SipAdapter implements Adapter {
 				return isStarted;
 			} else {
 				LOGGER.info("client started");
+				
+				isStopCalled = false;
 			}
 
 			connection = serverSocket.accept();
@@ -170,9 +172,10 @@ public class SipAdapter implements Adapter {
 			LOGGER.info("TCP/IP established with client");
 
 			dataOut = new DataOutputStream(connection.getOutputStream());
+
 			dataIn = new DataInputStream(connection.getInputStream());
 
-			/* get the running process details after start the application */
+			// get the running process details after start the application
 			processesAfStart = executeClient.getProcessInfo();
 
 			String processes[] = processesAfStart.split(";");
@@ -187,26 +190,24 @@ public class SipAdapter implements Adapter {
 			}
 
 			newProcesses = new String(sb.toString());
-			LOGGER.info("new processes after run the application "
-					+ newProcesses);
 
 		} catch (InterruptedException ex) {
-			TestUtility.printError("Error at starting client ", ex);
+			TestUtility.printError("Error while starting the client ", ex);
 			isStarted = false;
 		} catch (SecurityException ex) {
-			TestUtility.printError("Error at starting client ", ex);
+			TestUtility.printError("Error while starting the client ", ex);
 			isStarted = false;
 		} catch (SocketException ex) {
-			TestUtility.printError("Error at starting client ", ex);
+			TestUtility.printError("Error while starting the client ", ex);
 			isStarted = false;
 		} catch (IOException ex) {
-			TestUtility.printError("Error at starting client ", ex);
+			TestUtility.printError("Error while starting the client ", ex);
 			isStarted = false;
 		} catch (NullPointerException ex) {
-			TestUtility.printError("Error at starting client ", ex);
+			TestUtility.printError("Error while starting the client ", ex);
 			isStarted = false;
 		} catch (IllegalArgumentException ex) {
-			TestUtility.printError("Error at starting client ", ex);
+			TestUtility.printError("Error while starting the client ", ex);
 			isStarted = false;
 		}
 		return isStarted;
@@ -218,12 +219,14 @@ public class SipAdapter implements Adapter {
 		try {
 
 			isStopped = false;
-
-			/* stop client */
-			if (isRunning()) {
+			
+			// stop client
+			if (isConnected()) {
+				
+				isStopCalled = true;
+				
 				isStopped = executeClient.stopClient(testApplicationPath,
 						processesBefStart, newProcesses);
-				isClosedDefault = false;
 			}
 
 			if (isStopped) {
@@ -235,22 +238,22 @@ public class SipAdapter implements Adapter {
 			}
 
 		} catch (InterruptedException ex) {
-			TestUtility.printError("Error at closing client", ex);
+			TestUtility.printError("Error while closing the client", ex);
 			isStopped = false;
 		} catch (SecurityException ex) {
-			TestUtility.printError("Error at stopping client ", ex);
+			TestUtility.printError("Error while closing the client ", ex);
 			isStopped = false;
 		} catch (SocketException ex) {
-			TestUtility.printError("Error at stopping client ", ex);
+			TestUtility.printError("Error while closing the client", ex);
 			isStopped = false;
 		} catch (IOException ex) {
-			TestUtility.printError("Error at stopping client ", ex);
+			TestUtility.printError("Error while closing the client", ex);
 			isStopped = false;
 		} catch (NullPointerException ex) {
-			TestUtility.printError("Error at stopping client ", ex);
+			TestUtility.printError("Error while closing the client", ex);
 			isStopped = false;
 		} catch (IllegalArgumentException ex) {
-			TestUtility.printError("Error at stopping client ", ex);
+			TestUtility.printError("Error while closing the client", ex);
 			isStopped = false;
 		}
 		return isStopped;
@@ -264,8 +267,37 @@ public class SipAdapter implements Adapter {
 		return isStopped;
 	}
 
-	public boolean isClosedDefault() {
-		return isClosedDefault;
+	public boolean isStopCalled() {
+		return isStopCalled;
+	}
+
+	public boolean checkClientAvailability() {
+
+		boolean isAvailable = false;
+
+		// get the running process details
+		String curRunningProcess = null;
+		
+		try {
+			curRunningProcess = executeClient.getProcessInfo();
+
+			String process[] = newProcesses.split(";");
+
+			for (int i = 0; i < process.length; i++) {
+
+				if (curRunningProcess.indexOf(process[i]) >= 0) {
+					isAvailable = true;
+					break;
+
+				} else {
+					isAvailable = false;
+				}
+			}
+
+		} catch (IOException e) {
+
+		}
+		return isAvailable;
 	}
 
 	public void cleanUpSocket() {
@@ -292,7 +324,7 @@ public class SipAdapter implements Adapter {
 			serverSocket = null;
 			isStarted = false;
 			isStopped = false;
-			isClosedDefault = true;
+			isStopCalled = false;
 			LOGGER.info("cleaned-up the socket");
 		}
 	}

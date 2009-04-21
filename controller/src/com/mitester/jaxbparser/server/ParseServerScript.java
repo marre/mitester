@@ -34,6 +34,7 @@ package com.mitester.jaxbparser.server;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -62,7 +63,7 @@ import com.mitester.utility.TestUtility;
 public class ParseServerScript {
 
 	private static final Logger LOGGER = MiTesterLog
-	        .getLogger(ParseServerScript.class.getName());
+			.getLogger(ParseServerScript.class.getName());
 
 	private static final String FILE_PARSING_SMALLXML = ".xml";
 
@@ -81,14 +82,14 @@ public class ParseServerScript {
 			jc = JAXBContext.newInstance("com.mitester.jaxbparser.server");
 			LOGGER.info("Unmarshal Created");
 			SchemaFactory sf = SchemaFactory
-			        .newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+					.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
 
 			Schema schema = sf.newSchema(ParseServerScript.class
-			        .getClassLoader().getResource(
-			                "com" + FILE_SEPARATOR + "mitester"
-			                        + FILE_SEPARATOR + "jaxbparser"
-			                        + FILE_SEPARATOR + "server"
-			                        + FILE_SEPARATOR + "Server-Script.xsd"));
+					.getClassLoader().getResource(
+							"com" + FILE_SEPARATOR + "mitester"
+									+ FILE_SEPARATOR + "jaxbparser"
+									+ FILE_SEPARATOR + "server"
+									+ FILE_SEPARATOR + "Server-Script.xsd"));
 
 			u = jc.createUnmarshaller();
 			u.setSchema(schema);
@@ -105,9 +106,9 @@ public class ParseServerScript {
 
 		public boolean handleEvent(ValidationEvent event) {
 			TestUtility.printMessage("Line Number	:	"
-			        + event.getLocator().getLineNumber());
+					+ event.getLocator().getLineNumber());
 			TestUtility.printMessage("Column Number	:	"
-			        + event.getLocator().getColumnNumber());
+					+ event.getLocator().getColumnNumber());
 			return false;
 		}
 	}
@@ -125,7 +126,7 @@ public class ParseServerScript {
 	 */
 
 	public List<TEST> FileParsingServer(String serverScriptPath)
-	        throws IOException, NullPointerException, JAXBException {
+			throws FileNotFoundException, IOException, NullPointerException, JAXBException {
 
 		LOGGER.info("Entered to FileParsingServer");
 		File directoryPath = new File(serverScriptPath);
@@ -135,16 +136,16 @@ public class ParseServerScript {
 		for (String script : ScriptChildren) {
 
 			String serverScriptPathNew = serverScriptPath.concat(FILE_SEPARATOR
-			        + script);
+					+ script);
 
 			if (script.equalsIgnoreCase("Content_Files"))
 				continue;
 
 			if (script.endsWith(FILE_PARSING_SMALLXML)
-			        || script.endsWith(FILE_PARSING_CAPITALXML)) {
+					|| script.endsWith(FILE_PARSING_CAPITALXML)) {
 
 				serverScenarios
-				        .addAll(parseServerScenarioFile(serverScriptPathNew));
+						.addAll(parseServerScenarioFile(serverScriptPathNew));
 
 			} else if (new File(serverScriptPathNew).isDirectory()) {
 
@@ -167,14 +168,14 @@ public class ParseServerScript {
 	 */
 
 	public List<com.mitester.jaxbparser.server.TEST> parseServerScenarioFile(
-	        String serverScriptFile) throws IOException, NullPointerException,
-	        JAXBException {
+			String serverScriptFile) throws IOException, NullPointerException,
+			JAXBException {
 
 		LOGGER.info("Entered into parse Server ScenarioFile");
 
 		try {
 			Object testFlow = u
-			        .unmarshal(new FileInputStream(serverScriptFile));
+					.unmarshal(new FileInputStream(serverScriptFile));
 			LOGGER.info("Unmarshal completed");
 			com.mitester.jaxbparser.server.TESTFLOW sno = (com.mitester.jaxbparser.server.TESTFLOW) testFlow;
 			return sno.getTEST();

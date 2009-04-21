@@ -34,6 +34,7 @@ package com.mitester.jaxbparser.client;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -149,7 +150,7 @@ public class ParseClientScript {
 	 * @throws JAXBException
 	 */
 	public List<TEST> FileParsingClient(String clientScriptPath)
-	        throws IOException, NullPointerException, JAXBException {
+	        throws FileNotFoundException, IOException, NullPointerException, JAXBException {
 
 		LOGGER.info("Entered to FileParsingClient");
 

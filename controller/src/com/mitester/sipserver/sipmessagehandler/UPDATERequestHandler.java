@@ -34,6 +34,8 @@
  */
 package com.mitester.sipserver.sipmessagehandler;
 
+
+import static com.mitester.sipserver.SipServerConstants.SERVER_REQUEST;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_DISPLAY_NAME;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_PORT;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_USER_NAME;
@@ -67,6 +69,8 @@ import javax.sip.header.ToHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 
+import com.mitester.sipserver.ProcessSIPMessage;
+
 /**
  * A method to update the on-going/early session with the updated SDP
  * parameters.
@@ -86,7 +90,7 @@ public class UPDATERequestHandler {
 	 * @throws InvalidArgumentException
 	 * @throws PeerUnavailableException
 	 */
-	public static Request createUPDATERequest(SIPMessage sipmsg)
+	public static Request createUPDATERequest(SIPMessage sipmsg,String dialog)
 	        throws NullPointerException, SipException,
 	        java.text.ParseException, InvalidArgumentException,
 	        PeerUnavailableException {
@@ -99,7 +103,6 @@ public class UPDATERequestHandler {
 		Random remotetag = new Random();
 		if (sipmsg != null) {
 			ViaList via = sipmsg.getViaHeaders();
-
 			String viaValue = via.getValue();
 			int index = viaValue.indexOf("=");
 			String branch = viaValue.substring(index + 1, viaValue.length());
@@ -114,14 +117,29 @@ public class UPDATERequestHandler {
 			long invitecseq = sipmsg.getCSeq().getSeqNumber();
 			CSeqHeader cseq = headerFactory.createCSeqHeader(invitecseq + 1,
 			        Request.UPDATE);
-			Address from = sipmsg.getFrom().getAddress();
-			String fromTag = sipmsg.getFromTag();
-			Address to = sipmsg.getTo().getAddress();
-			String toTag = sipmsg.getToTag();
-			FromHeader fromHeader = headerFactory.createFromHeader(to, toTag);
-			ToHeader toHeader = headerFactory.createToHeader(from, fromTag);
+			ToHeader toHeader;
+			FromHeader fromHeader;
+			CallIdHeader callid;
+			if(dialog == null) {
+				callid = sipmsg.getCallId();
+				Address from = sipmsg.getFrom().getAddress();
+				String fromTag = sipmsg.getFromTag();
+				Address to = sipmsg.getTo().getAddress();
+				String toTag = sipmsg.getToTag();
+				fromHeader = headerFactory.createFromHeader(to, toTag);
+				toHeader = headerFactory.createToHeader(from, fromTag);
+			} else {
+				SIPMessage sipMsg = ProcessSIPMessage.getSIPMessage(dialog, Request.UPDATE,
+				        SERVER_REQUEST);
+				callid = sipMsg.getCallId();
+				fromHeader = sipMsg.getFrom();
+				toHeader = sipMsg.getTo();
+				if(toHeader.getTag() == null) {
+					toHeader.setTag(Integer.toHexString(remotetag.nextInt()));
+				}
+			}			
 			request = messageFactoryImpl.createRequest(requestURI,
-			        Request.UPDATE, sipmsg.getCallId(), cseq, fromHeader,
+			        Request.UPDATE, callid, cseq, fromHeader,
 			        toHeader, viaHeader, maxfwd);
 			request.setMethod(Request.UPDATE);
 		} else {

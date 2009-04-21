@@ -35,6 +35,8 @@ package com.mitester.utility;
 
 import static com.mitester.utility.ConfigurationProperties.CONFIG_INSTANCE;
 
+import java.util.logging.Logger;
+
 /**
  * This class validates the miTester properties 
  * 
@@ -42,7 +44,9 @@ import static com.mitester.utility.ConfigurationProperties.CONFIG_INSTANCE;
 
 public class ConfigurationPropertiesValidator 
 {
-
+	private static final Logger LOGGER = MiTesterLog
+	.getLogger(ConfigurationPropertiesValidator.class.getName());
+	
 	private static final String TCP_SERVER_PORT = "TCP_SERVER_PORT";
 	private static final String TEST_MODE = "TEST_MODE";
 	private static final String CLIENT_IP_ADDRESS = "CLIENT_IP_ADDRESS";
@@ -66,26 +70,31 @@ public class ConfigurationPropertiesValidator
 								} else {
 									TestUtility
 											.printMessage("No CLIENT_SCRIPT_PATH exists in the config file");
+									LOGGER.info("No CLIENT_SCRIPT_PATH exists in the config file");
 									return false;
 								}
 							} else {
 								TestUtility
 										.printMessage("No SERVER_SCRIPT_PATH exists in the config file");
+								LOGGER.info("No SERVER_SCRIPT_PATH exists in the config file");
 								return false;
 							}
 						} else {
 							TestUtility
 									.printMessage("No TEST_APPLICATION_PATH exists in the config file");
+							LOGGER.info("No TEST_APPLICATION_PATH exists in the config file");
 							return false;
 						}
 					} else {
 						TestUtility
 								.printMessage("No CLIENT_IP_ADDRESS exists in the config file");
+						LOGGER.info("No CLIENT_IP_ADDRESS exists in the config file");
 						return false;
 					}
 				} else {
 					TestUtility
 							.printMessage("No TCP_SERVER_PORT exists in the config file");
+					LOGGER.info("No TCP_SERVER_PORT exists in the config file");
 					return false;
 				}
 			} else if (CONFIG_INSTANCE.getValue(TEST_MODE)
@@ -96,20 +105,24 @@ public class ConfigurationPropertiesValidator
 					} else {
 						TestUtility
 								.printMessage("No SERVER_SCRIPT_PATH exists in the config file");
+						LOGGER.info("No SERVER_SCRIPT_PATH exists in the config file");
 						return false;
 					}
 				} else {
 					TestUtility
 							.printMessage("No CLIENT_IP_ADDRESS exists in the config file");
+					LOGGER.info("No CLIENT_IP_ADDRESS exists in the config file");
 					return false;
 				}
 			} else {
 				TestUtility
 						.printMessage("Error at choosing TEST_MODE");
+				LOGGER.info("Error at choosing TEST_MODE");
 				return false;
 			}
 		} else {
 			TestUtility.printMessage("No TEST_MODE exists in the config file");
+			LOGGER.info("No TEST_MODE exists in the config file");
 			return false;
 		}
 	}

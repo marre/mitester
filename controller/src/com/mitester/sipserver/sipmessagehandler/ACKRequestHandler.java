@@ -34,6 +34,7 @@
  */
 package com.mitester.sipserver.sipmessagehandler;
 
+import static com.mitester.sipserver.SipServerConstants.SERVER_REQUEST;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_DISPLAY_NAME;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_PORT;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_USER_NAME;
@@ -71,6 +72,8 @@ import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
+import com.mitester.sipserver.ProcessSIPMessage;
+
 /**
  * CreateACKRequestHandler is used to generate the ACK Request for the the 2xx
  * and non-2xx INVITE response
@@ -90,7 +93,7 @@ public class ACKRequestHandler {
 	 * @throws InvalidArgumentException
 	 * @throws SipException
 	 */
-	public static Request createACKRequest(SIPMessage invite)
+	public static Request createACKRequest(SIPMessage invite,String dialog)
 	        throws NullPointerException, java.text.ParseException,
 	        InvalidArgumentException, SipException {
 		MessageFactoryImpl messageFactoryImpl = new MessageFactoryImpl();
@@ -126,18 +129,26 @@ public class ACKRequestHandler {
 
 			viaHeaders.add(viaHeader);
 			SipURI requestURI;
-			if (contact == null)
+			if (contact == null) {
 				requestURI = MessageHandlerHelper.createSIPURI(FROM_USER_NAME,
 				        LOOP_BACK_ADDRESS, addressFactory);
 
-			else {
+			} else {
 				Address a = contact.getAddress();
 				String array[] = a.toString().split(" ");
-				String uri = array[1];
-				uri = uri.replace("<", "");
-				uri = uri.replace(">", "");
-				URI a1 = addressFactory.createURI(uri);
-				requestURI = (SipURI) a1;
+				if (array.length > 1) {
+					String uri = array[1];
+					uri = uri.replace("<", "");
+					uri = uri.replace(">", "");
+					URI a1 = addressFactory.createURI(uri);
+					requestURI = (SipURI) a1;
+				} else {
+					String uri = array[0];
+					uri = uri.replace("<", "");
+					uri = uri.replace(">", "");
+					URI a1 = addressFactory.createURI(uri);
+					requestURI = (SipURI) a1;
+				}
 			}
 			URI requesturi = addressFactory.createURI(requestURI.toString());
 			MaxForwardsHeader maxfwd = MessageHandlerHelper
@@ -146,10 +157,23 @@ public class ACKRequestHandler {
 			long invitecseq = invite.getCSeq().getSeqNumber();
 			CSeqHeader cseq = MessageHandlerHelper.createCSeqHeader(invitecseq,
 			        Request.ACK, headerFactory);
-
+			CallIdHeader callid;
+			FromHeader fromHeader;
+			ToHeader toHeader;
+			if(dialog != null) {
+				SIPMessage sipMsg = ProcessSIPMessage.getSIPMessage(dialog, Request.ACK,
+				        SERVER_REQUEST);
+				callid = sipMsg.getCallId();
+				fromHeader= sipMsg.getFrom();
+				toHeader = sipMsg.getTo();
+			} else {
+				callid = invite.getCallId();
+				fromHeader= invite.getFrom();
+				toHeader = invite.getTo();
+			}
 			request = MessageHandlerHelper.createRequest(requesturi,
-			        Request.ACK, invite.getCallId(), cseq, invite.getFrom(),
-			        invite.getTo(), viaHeaders, maxfwd, messageFactoryImpl);
+			        Request.ACK,callid , cseq,fromHeader ,
+			        toHeader , viaHeaders, maxfwd, messageFactoryImpl);
 
 			request.setMethod(Request.ACK);
 		} else {

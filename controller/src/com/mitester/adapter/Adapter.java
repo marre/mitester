@@ -90,11 +90,11 @@ public interface Adapter {
 			InterruptedException;
 
 	/**
-	 * This method used to check the existence of TCP socket
+	 * This method used to check the TCP connection
 	 * 
-	 * @return true if client is running
+	 * @return true if client is connected
 	 */
-	public boolean isRunning();
+	public boolean isConnected();
 
 	/**
 	 * This method returns the TCP socket object
@@ -115,7 +115,7 @@ public interface Adapter {
 	 * 
 	 * @return true when closed by itself not closed by miTester
 	 */
-	public boolean isClosedDefault();
+	public boolean isStopCalled();
 
 	/**
 	 * This method cleaning up all socket variables
@@ -123,5 +123,11 @@ public interface Adapter {
 	 */
 
 	public void cleanUpSocket();
+	
+	/**
+	 * This method is used to check the client availability
+	 * @return true if the client is available
+	 */
+	public boolean checkClientAvailability();
 
 }

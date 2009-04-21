@@ -18,6 +18,7 @@
       <xs:attribute name="TEST-SHEET"/>
       <xs:attribute name="TEST-SUITE"/>
       <xs:attribute name="TYPE" use="required" type="xs:NCName"/>
+      <xs:attribute name="COUNT" type="xs:integer"/>
     </xs:complexType>
   </xs:element>
   <xs:element name="ACTION">
@@ -37,6 +38,7 @@
       <xs:attribute name="RECV" type="xs:NCName"/>
       <xs:attribute name="SEND" type="xs:NCName"/>
       <xs:attribute name="count" type="xs:integer"/>
+      <xs:attribute name="dialog" type="xs:NMTOKEN"/>
       <xs:attribute name="value" use="required" type="xs:NMTOKEN"/>
     </xs:complexType>
   </xs:element>

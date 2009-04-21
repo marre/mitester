@@ -34,6 +34,7 @@
  */
 package com.mitester.sipserver.sipmessagehandler;
 
+import static com.mitester.sipserver.SipServerConstants.SERVER_REQUEST;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_DISPLAY_NAME;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_PORT;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_USER_NAME;
@@ -68,6 +69,8 @@ import javax.sip.header.ToHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 
+import com.mitester.sipserver.ProcessSIPMessage;
+
 /**
  * A method indicates that the recipient (identified by the Request-URI) should
  * contact a third party using the contact information provided in the request.
@@ -87,7 +90,7 @@ public class REFERRequestHandler {
 	 * @throws InvalidArgumentException
 	 * @throws SipException
 	 */
-	public static Request createREFERRequest(SIPMessage invite)
+	public static Request createREFERRequest(SIPMessage invite,String dialog)
 	        throws NullPointerException, java.text.ParseException,
 	        InvalidArgumentException, SipException {
 		MessageFactoryImpl messageFactoryImpl = new MessageFactoryImpl();
@@ -113,10 +116,23 @@ public class REFERRequestHandler {
 			long invitecseq = invite.getCSeq().getSeqNumber();
 			CSeqHeader cseq = MessageHandlerHelper.createCSeqHeader(
 			        invitecseq + 1, Request.REFER, headerFactory);
-
+			CallIdHeader callid;
+			FromHeader fromHeader;
+			ToHeader toHeader;
+			if(dialog == null) {
+				callid = invite.getCallId();
+				fromHeader = invite.getFrom();
+				toHeader = invite.getTo();
+			} else {
+				SIPMessage sipMsg = ProcessSIPMessage.getSIPMessage(dialog, Request.REFER,
+				        SERVER_REQUEST);
+				callid = sipMsg.getCallId();
+				fromHeader= sipMsg.getFrom();
+				toHeader = sipMsg.getTo();
+			}
 			request = MessageHandlerHelper.createRequest(requestURI,
-			        Request.REFER, invite.getCallId(), cseq, invite.getFrom(),
-			        invite.getTo(), viaHeaders, maxfwd, messageFactoryImpl);
+			        Request.REFER, callid, cseq, fromHeader,
+			        toHeader, viaHeaders, maxfwd, messageFactoryImpl);
 
 			request.setMethod(Request.REFER);
 

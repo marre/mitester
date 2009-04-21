@@ -1,0 +1,303 @@
+<TEST_FLOW>
+
+    <TEST TYPE = 'Normal' TEST-ID = 'SS-1' 
+               DESCRIPTION = ' SUT sends First REGISTER request
+                                           miTester sends 401 REGISTER response,
+                                           SUT sends Second REGISTER request,
+                                           miTester sends 200 REGISTER response,
+                                           SUT sends De-REGISTER request,
+                                           miTester sends 200 REGISTER response' >
+
+        <ACTION SEND ='req' value = 'REGISTER' >
+            <PARAM type = 'uri' value = 'Test1@127.0.0.1' />
+            <PARAM type = 'password' value = 'Test' />
+            <PARAM type = 'expires' value = '3600' />
+            <PARAM type = 'serverport' value = '5070' />
+            <PARAM type = 'proxyport' value = '5070' />
+        </ACTION>
+        <ACTION RECV='res' value='REGISTERED' />
+        <ACTION SEND = 'req' value = 'DE-REGISTER' />
+        <ACTION RECV = 'res' value = 'DE-REGISTERED'/>
+    </TEST>
+
+
+    <TEST TYPE = 'Normal' TEST-ID = 'SS-2' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           miTester sends 200 REGISTER response,
+                                           miTester sends INVITE request,
+                                           SUT sends 200 INVITE response,
+                                           miTester sends ACK request,
+                                           SUT sends BYE request,
+                                           miTester sends 200 BYE response,
+                                           SUT sends De-REGISTER request,
+                                           miTester sends 200 REGISTER response' >
+
+        <ACTION SEND ='req' value = 'REGISTER' >
+            <PARAM type = 'uri' value = 'Test1@127.0.0.1' />
+        </ACTION>
+        <ACTION RECV='res' value='REGISTERED' />
+        <ACTION RECV = 'req' value = 'INVITE' />
+        <ACTION SEND = 'res' value= 'ACCEPT' />
+        <ACTION RECV = 'res' value = 'SESSION_CONNECTED' />
+        <ACTION SEND = 'req' value = 'BYE' />
+        <ACTION RECV = 'res' value = 'SESSION_DISCONNECTED' />
+        <WAIT unit = 'msec' value = '6000'/>
+        <ACTION SEND = 'req' value = 'DE-REGISTER' />
+        <ACTION RECV = 'res' value = 'DE-REGISTERED'/>
+    </TEST>
+
+
+    <TEST TYPE = 'Normal' TEST-ID = 'SS-3' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           miTester sends 200 REGISTER response,
+                                           SUT sends INVITE request,
+                                           miTester sends 200 INVITE response,
+                                           SUT sends ACK request,
+                                           miTester sends BYE request,
+                                           SUT sends 200 BYE response,
+                                           SUT sends De-REGISTER request,
+                                           miTester sends 200 REGISTER response' >
+
+        <ACTION SEND ='req' value = 'REGISTER' >
+            <PARAM type = 'uri' value = 'Test1@127.0.0.1' />
+        </ACTION>
+        <ACTION RECV='res' value='REGISTERED' />
+        <ACTION SEND = 'req' value = 'INVITE' >
+            <PARAM type = 'uri' value = 'UserA' />
+        </ACTION>
+        <ACTION RECV = 'res' value = 'SESSION_CONNECTED' />
+        <ACTION RECV = 'res' value = 'SESSION_DISCONNECTED' />
+        <WAIT unit = 'msec' value = '6000'/>
+        <ACTION SEND = 'req' value = 'DE-REGISTER' />
+        <ACTION RECV = 'res' value = 'DE-REGISTERED'/>
+    </TEST>
+
+
+    <TEST TYPE = 'Normal' TEST-ID = 'SS-4' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           miTester sends 200 REGISTER response,
+                                           miTester sends INVITE request,
+                                           SUT sends 486 INVITE response,
+                                           miTester sends ACK request,
+                                           SUT sends De-REGISTER request,
+                                           miTester sends 200 REGISTER response' >
+
+        <ACTION SEND ='req' value = 'REGISTER' >
+            <PARAM type = 'uri' value = 'Test1@127.0.0.1' />
+        </ACTION>
+        <ACTION RECV='res' value='REGISTERED' />
+        <ACTION RECV = 'req' value = 'INVITE' />
+        <ACTION SEND = 'res' value = 'REJECT' />
+        <ACTION RECV = 'res' value = 'SESSION_DISCONNECTED' />
+        <WAIT unit = 'msec' value = '6000'/>
+        <ACTION SEND = 'req' value = 'DE-REGISTER' />
+        <ACTION RECV = 'res' value = 'DE-REGISTERED'/>
+    </TEST>
+
+
+    <TEST TYPE = 'Normal' TEST-ID = 'SS-5' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           miTester sends 200 REGISTER response,
+                                           SUT sends INVITE request,
+                                           miTester sends 180 INVITE response,
+                                           SUT sends CANCEL request,
+                                           miTester sends 200 CANCEL response,
+                                           miTester sends 487 INVITE response,
+                                           SUT sends ACK request,
+                                           SUT sends De-REGISTER request,
+                                           miTester sends 200 REGISTER response' >
+
+        <ACTION SEND ='req' value = 'REGISTER' >
+            <PARAM type = 'uri' value = 'Test1@127.0.0.1' />
+        </ACTION>
+        <ACTION RECV='res' value='REGISTERED' />
+        <ACTION SEND = 'req' value = 'INVITE' >
+            <PARAM type = 'uri' value = 'UserA' />
+        </ACTION>
+        <ACTION RECV = 'res' value= 'RINGING' />
+        <ACTION SEND = 'req' value = 'CANCEL' />
+        <ACTION RECV = 'res' value = 'SESSION_DISCONNECTED' />
+        <WAIT unit = 'msec' value = '6000'/>
+        <ACTION SEND = 'req' value = 'DE-REGISTER' />
+        <ACTION RECV = 'res' value = 'DE-REGISTERED'/>
+    </TEST>
+
+
+
+    <TEST TYPE = 'Normal' TEST-ID = 'SS-6' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           miTester sends 200 OK REGISTER response with user -specified value in Max-Forwards header' >
+
+        <ACTION SEND ='req' value = 'REGISTER' >
+            <PARAM type = 'uri' value = 'Test1@127.0.0.1' />
+        </ACTION>
+        <ACTION RECV='res' value='REGISTERED' />
+        <ACTION SEND = 'req' value = 'DE-REGISTER' />
+        <ACTION RECV = 'res' value = 'DE-REGISTERED'/>
+    </TEST>
+
+
+    <TEST TYPE = 'Normal' TEST-ID = 'SS-7' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           miTester sends 200 OK REGISTER response,
+                                           miTester sends INVITE request with user-specified values in the request-line and SDP body,
+                                           SUT sends 486 Busy Here INVITE response
+                                           miTester sends ACK request,
+                                           SUT sends De-REGISTER request,
+                                           miTester sends 200 REGISTER response' >
+
+        <ACTION SEND ='req' value = 'REGISTER' >
+            <PARAM type = 'uri' value = 'Test1@127.0.0.1' />
+        </ACTION>
+        <ACTION RECV='res' value='REGISTERED' />
+        <ACTION RECV = 'req' value = 'INVITE' />
+        <ACTION SEND = 'res' value = 'REJECT' />
+        <ACTION RECV = 'res' value = 'SESSION_DISCONNECTED' />
+        <WAIT unit = 'msec' value = '6000'/>
+        <ACTION SEND = 'req' value = 'DE-REGISTER' />
+        <ACTION RECV = 'res' value = 'DE-REGISTERED'/>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Normal' TEST-ID = 'SS-8' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           miTester sends 200 OK REGISTER response with user -specified values in Status line' >
+
+        <ACTION SEND ='req' value = 'REGISTER' >
+            <PARAM type = 'uri' value = 'Test1@127.0.0.1' />
+        </ACTION>
+        <ACTION RECV='res' value='REGISTERED' />
+        <ACTION SEND = 'req' value = 'DE-REGISTER' />
+        <ACTION RECV = 'res' value = 'DE-REGISTERED'/>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Abormal' TEST-ID = 'SS-9' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           miTester sends 200 OK REGISTER response with values copied for User-Agent header from the incoming request' >
+
+        <ACTION SEND ='req' value = 'REGISTER' >
+            <PARAM type = 'uri' value = 'Test1@127.0.0.1' />
+        </ACTION>
+        <ACTION RECV='res' value='REGISTERED' />
+        <ACTION SEND = 'req' value = 'DE-REGISTER' />
+        <ACTION RECV = 'res' value = 'DE-REGISTERED'/>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Abormal' TEST-ID = 'SS-10' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           miTester sends 200 OK REGISTER response with missing From header' >
+
+        <ACTION SEND ='req' value = 'REGISTER' >
+            <PARAM type = 'uri' value = 'Test1@127.0.0.1' />
+        </ACTION>
+        <ACTION DISCARD='res' value='REGISTERED' />
+        <ACTION SEND='req' value='QUIT' />
+
+    </TEST>
+
+
+    <TEST TYPE = 'Abormal' TEST-ID = 'SS-11' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           Based on the count value, miTester duplicates and sends the 200 OK REGISTER response' >
+
+        <ACTION SEND ='req' value = 'REGISTER' >
+            <PARAM type = 'uri' value = 'Test1@127.0.0.1' />
+        </ACTION>
+        <ACTION RECV='res' value='REGISTERED' />
+        <WAIT unit = 'msec' value = '6000'/>
+        <ACTION SEND = 'req' value = 'DE-REGISTER' />
+        <ACTION RECV = 'res' value = 'DE-REGISTERED'/>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Abormal' TEST-ID = 'SS-12' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           Based on the count value, miTester duplicates and sends the From header in 200 OK REGISTER response' >
+
+        <ACTION SEND ='req' value = 'REGISTER' >
+            <PARAM type = 'uri' value = 'Test1@127.0.0.1' />
+        </ACTION>
+        <ACTION RECV='res' value='REGISTERED' />
+        <ACTION SEND = 'req' value = 'DE-REGISTER' />
+        <ACTION RECV = 'res' value = 'DE-REGISTERED'/>
+
+    </TEST>
+
+
+
+    <TEST TYPE = 'Abormal' TEST-ID = 'SS-13' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           Based on the count value, miTester duplicates and sends the branch parameter in Via header - 200 OK REGISTER response' >
+
+        <ACTION SEND ='req' value = 'REGISTER' >
+            <PARAM type = 'uri' value = 'Test1@127.0.0.1' />
+        </ACTION>
+        <ACTION RECV='res' value='REGISTERED' />
+        <ACTION SEND = 'req' value = 'DE-REGISTER' />
+        <ACTION RECV = 'res' value = 'DE-REGISTERED'/>
+
+    </TEST>
+
+
+    <TEST TYPE = 'Abormal' TEST-ID = 'SS-14' COUNT ='5' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           miTester sends 200 OK REGISTER response,
+                                           Based on the count value mentioned inside the TEST tag, the specific test case is executed' >
+
+        <ACTION SEND ='req' value = 'REGISTER' >
+            <PARAM type = 'uri' value = 'Test1@127.0.0.1' />
+        </ACTION>
+        <ACTION RECV='res' value='REGISTERED' />
+        <ACTION SEND = 'req' value = 'DE-REGISTER' />
+        <ACTION RECV = 'res' value = 'DE-REGISTERED'/>
+
+    </TEST>
+
+
+
+    <TEST TYPE = 'Abormal' TEST-ID = 'SS-15'  
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           Based on the count value, miTester adds CRLF at the end of From header and sends 200 OK REGISTER response' >
+
+        <ACTION SEND ='req' value = 'REGISTER' >
+            <PARAM type = 'uri' value = 'Test1@127.0.0.1' />
+        </ACTION>
+        <ACTION DISCARD='res' value='REGISTERED' />
+        <ACTION SEND='req' value='QUIT' />
+
+    </TEST>
+
+
+    <TEST TYPE = 'Abormal' TEST-ID = 'SS-16'  
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           Based on the count value, miTester removes CRLF at the end of From header and sends 200 OK REGISTER response' >
+
+        <ACTION SEND ='req' value = 'REGISTER' >
+            <PARAM type = 'uri' value = 'Test1@127.0.0.1' />
+        </ACTION>
+        <ACTION DISCARD='res' value='REGISTERED' />
+        <ACTION SEND='req' value='QUIT' />
+
+    </TEST>
+
+
+    <TEST TYPE = 'Normal' TEST-ID = 'SS-17' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                                           miTester sends 200 OK REGISTER response with Accept-Language header as custom header' >
+
+        <ACTION SEND ='req' value = 'REGISTER' >
+            <PARAM type = 'uri' value = 'Test1@127.0.0.1' />
+        </ACTION>
+        <ACTION RECV='res' value='REGISTERED' />
+        <ACTION SEND = 'req' value = 'DE-REGISTER-ALL' />
+        <ACTION RECV = 'res' value = 'DE-REGISTERED'/>
+
+    </TEST>
+
+</TEST_FLOW>
