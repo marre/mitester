@@ -1,10 +1,8 @@
 package net.java.sip.communicator.impl.tcpinterface;
 
-import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.net.SocketException;
 import java.text.ParseException;
@@ -20,7 +18,6 @@ import java.util.concurrent.TimeUnit;
 import net.java.sip.communicator.impl.gui.GuiActivator;
 import net.java.sip.communicator.impl.gui.main.call.CallDialog;
 import net.java.sip.communicator.impl.gui.main.call.CallManager;
-import net.java.sip.communicator.impl.gui.main.call.CallPanel;
 import net.java.sip.communicator.impl.gui.main.call.GuiCallParticipantRecord;
 import net.java.sip.communicator.plugin.sipaccregwizz.SIPAccountRegistrationWizard;
 import net.java.sip.communicator.service.configuration.ConfigurationService;
@@ -28,66 +25,37 @@ import net.java.sip.communicator.service.gui.AccountRegistrationWizard;
 import net.java.sip.communicator.service.protocol.AccountID;
 import net.java.sip.communicator.service.protocol.Call;
 import net.java.sip.communicator.service.protocol.CallParticipant;
-import net.java.sip.communicator.service.protocol.CallParticipantState;
 import net.java.sip.communicator.service.protocol.CallState;
 import net.java.sip.communicator.service.protocol.OperationFailedException;
 import net.java.sip.communicator.service.protocol.OperationSetBasicTelephony;
 import net.java.sip.communicator.service.protocol.ProtocolProviderFactory;
 import net.java.sip.communicator.service.protocol.ProtocolProviderService;
-import net.java.sip.communicator.service.protocol.RegistrationState;
-import net.java.sip.communicator.service.protocol.event.CallChangeEvent;
-import net.java.sip.communicator.service.protocol.event.CallChangeListener;
-import net.java.sip.communicator.service.protocol.event.CallEvent;
-import net.java.sip.communicator.service.protocol.event.CallListener;
-import net.java.sip.communicator.service.protocol.event.CallParticipantChangeEvent;
-import net.java.sip.communicator.service.protocol.event.CallParticipantEvent;
-import net.java.sip.communicator.service.protocol.event.CallParticipantListener;
-import net.java.sip.communicator.service.protocol.event.RegistrationStateChangeEvent;
-import net.java.sip.communicator.service.protocol.event.RegistrationStateChangeListener;
 
 import org.osgi.framework.ServiceReference;
 
-public class TcpInterfaceServiceImpl implements Runnable,
-		RegistrationStateChangeListener, CallChangeListener,
-		CallParticipantListener, CallListener {
+public class TcpInterfaceServiceImpl implements Runnable {
 
-	private static final BufferedWriter SYSTEM_OUT = new BufferedWriter(
-			new OutputStreamWriter(System.out));
+	private static final int TCP_CLIENT_PORT = 7777;
 
-	private static final BufferedWriter SYSTEM_ERR = new BufferedWriter(
-			new OutputStreamWriter(System.err));
-
-	private static final String REGISTERED = "REGISTERED";
+	private static final String REGISTER = "REGISTER";
 
 	private static final String REGISTERING = "REGISTERING";
 
-	private static final String REGISTRATION_FAILED = "REGISTRATION_FAILED";
-
-	private static final String DE_REGISTERING = "DE-REGISTERING";
-
-	private static final String DE_REGISTERED = "DE-REGISTERED";
-
-	private static final String RINGING = "RINGING";
-
-	private static final String SESSION_IN_PROGRESS = "SESSION_IN_PROGRESS";
-
-	private static final String TRYING = "TRYING";
-
-	private static final String SESSION_CONNECTED = "SESSION_CONNECTED";
-
-	private static final String SESSION_DISCONNECTED = "SESSION_DISCONNECTED";
-
-	private static final String SESSION_FAILED = "SESSION_FAILED";
-
-	private static final String BUSY_HERE = "BUSY_HERE";
-
 	private static final String INVITE = "INVITE";
 
-	private static final String INITIATING_CALL = "INITIATING_CALL";
+	private static final String CANCEL = "CANCEL";
 
-	private static final String HOST_NAME = "localhost";
+	private static final String BYE = "BYE";
 
-	private static final int TCP_PORT = 7777;
+	private static final String DE_REGISTER = "DE-REGISTER";
+
+	private static final String DE_REGISTER_ALL = "DE-REGISTER-ALL";
+
+	private static final String ACCEPT = "ACCEPT";
+
+	private static final String REJECT = "REJECT";
+
+	private static final String QUIT = "QUIT";
 
 	private ExecutorService clientExecutors = Executors.newFixedThreadPool(1);
 
@@ -99,7 +67,7 @@ public class TcpInterfaceServiceImpl implements Runnable,
 
 	private CallDialog inComingCallDialog = null;
 
-	private boolean isDeRegisterAll = false;
+	private volatile boolean isDeRegisterAll = false;
 
 	private OperationSetBasicTelephony callService = null;
 
@@ -109,232 +77,33 @@ public class TcpInterfaceServiceImpl implements Runnable,
 
 	private DataInputStream dataIn = null;
 
+	private String message = null;
+
 	private volatile boolean done = false;
 
+	private RegisterEventHandler registerEventHandler = null;
+
+	private CallEventHandler callEventHandler = null;
+
+	private IncomingCallEventHandler incomingCallEventHandler = null;
+
+	private OutgoingCallEventHandler outgoingCallEventHandler = null;
+
 	public TcpInterfaceServiceImpl() {
+
+		incomingCallEventHandler = new IncomingCallEventHandler(this);
+
+		outgoingCallEventHandler = new OutgoingCallEventHandler(this);
+
+		callEventHandler = new CallEventHandler(this);
+
+		registerEventHandler = new RegisterEventHandler(this);
 
 	}
 
 	public void tcpStartService() {
+
 		clientExecutors.execute(this);
-	}
-
-	/**
-	 * Events below are triggered on REGISTER transaction
-	 * 
-	 */
-	public void registrationStateChanged(RegistrationStateChangeEvent evt) {
-
-		if (evt.getNewState().equals(RegistrationState.REGISTERED)) {
-
-			callService = (OperationSetBasicTelephony) TcpInterfaceActivator
-					.getCreateCallService();
-
-			if (callService != null) {
-				System.out.println("call service is not null");
-			} else {
-				System.out.println("call service is null");
-			}
-
-			callService.addCallListener(this);
-
-			// /* make a delay to sending notification */
-			// try {
-			//
-			// TimeUnit.MILLISECONDS.sleep(100);
-			//
-			// } catch (InterruptedException e) {
-			//
-			// // TODO Auto-generated catch block
-			// e.printStackTrace();
-			// }
-
-			/* send to miTester */
-			sendMessage(REGISTERED);
-
-			printMessage(REGISTERED);
-
-		} else if (evt.getNewState().equals(RegistrationState.UNREGISTERING)) {
-
-			/* send to miTester */
-			sendMessage(DE_REGISTERING);
-
-			printMessage(DE_REGISTERING);
-
-		} else if (evt.getNewState().equals(RegistrationState.UNREGISTERED)) {
-
-			/* make a delay to sending notification */
-			if (isDeRegisterAll) {
-
-				isDeRegisterAll = false;
-
-				/* remove the account if exist */
-				removeAccount();
-
-				/* make a delay to sending notification */
-				try {
-
-					TimeUnit.MILLISECONDS.sleep(200);
-
-				} catch (InterruptedException e) {
-
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-
-			}
-
-			/* send to miTester */
-			sendMessage(DE_REGISTERED);
-
-			printMessage(DE_REGISTERED);
-
-		} else if (evt.getNewState().equals(RegistrationState.REGISTERING)) {
-			/* send to miTester */
-			sendMessage(REGISTERING);
-
-			printMessage(REGISTERING);
-		} else if (evt.getNewState().equals(
-				RegistrationState.AUTHENTICATION_FAILED)
-				|| evt.getNewState()
-						.equals(RegistrationState.CONNECTION_FAILED)) {
-
-			/* send to miTester */
-			sendMessage(REGISTRATION_FAILED);
-
-			printMessage(REGISTRATION_FAILED);
-		}
-	}
-
-	/**
-	 * Events below are triggered on Call transaction
-	 * 
-	 */
-
-	public void callParticipantAdded(CallParticipantEvent evt) {
-		// TODO Auto-generated method stub
-	}
-
-	public void callParticipantRemoved(CallParticipantEvent evt) {
-		// TODO Auto-generated method stub
-	}
-
-	public void participantAddressChanged(CallParticipantChangeEvent evt) {
-		// TODO Auto-generated method stub
-	}
-
-	public void participantDisplayNameChanged(CallParticipantChangeEvent evt) {
-		// TODO Auto-generated method stub
-	}
-
-	public void participantImageChanged(CallParticipantChangeEvent evt) {
-		// TODO Auto-generated method stub
-	}
-
-	public void participantStateChanged(CallParticipantChangeEvent evt) {
-
-		if (evt.getNewValue() == CallParticipantState.ALERTING_REMOTE_SIDE) {
-			/* send to miTester */
-			sendMessage(RINGING);
-
-			printMessage(RINGING);
-		}
-		if (evt.getNewValue() == CallParticipantState.CONNECTING_WITH_EARLY_MEDIA) {
-			/* send to miTester */
-			sendMessage(SESSION_IN_PROGRESS);
-
-			printMessage(SESSION_IN_PROGRESS);
-
-		} else if (evt.getNewValue() == CallParticipantState.CONNECTING) {
-			/* send to miTester */
-			sendMessage(TRYING);
-
-			printMessage(TRYING);
-
-		} else if (evt.getNewValue() == CallParticipantState.CONNECTED) {
-			
-			/* send to miTester */
-			sendMessage(SESSION_CONNECTED);
-
-			printMessage(SESSION_CONNECTED);
-
-		} else if (evt.getNewValue() == CallParticipantState.INCOMING_CALL) {
-			// sendMessage("INCOMING_CALL");
-		} else if (evt.getNewValue() == CallParticipantState.INITIATING_CALL) {
-			// sendMessage(INITIATING_CALL);
-		} else if (evt.getNewValue() == CallParticipantState.DISCONNECTED) {
-			/* send to miTester */
-			sendMessage(SESSION_DISCONNECTED);
-
-			printMessage(SESSION_DISCONNECTED);
-			outgoingcall = null;
-		} else if (evt.getNewValue() == CallParticipantState.FAILED) {
-			/* send to miTester */
-			sendMessage(SESSION_FAILED);
-			printMessage(SESSION_FAILED);
-			outgoingcall = null;
-		} else if (evt.getNewValue() == CallParticipantState.BUSY) {
-			/* send to miTester */
-			sendMessage(BUSY_HERE);
-			printMessage(BUSY_HERE);
-			outgoingcall = null;
-		}
-	}
-
-	public void participantTransportAddressChanged(
-			CallParticipantChangeEvent evt) {
-	}
-
-	public void callStateChanged(CallChangeEvent evt) {
-
-		if (evt.getNewValue() == CallState.CALL_IN_PROGRESS) {
-			
-			/* send to miTester */
-			sendMessage(SESSION_CONNECTED);
-
-			printMessage(SESSION_CONNECTED);
-
-		} else if (evt.getNewValue() == CallState.CALL_ENDED) {
-
-			/* send to miTester */
-			sendMessage(SESSION_DISCONNECTED);
-
-			printMessage(SESSION_DISCONNECTED);
-
-			if (inComingCallDialog != null)
-				CallManager.disposeCallDialogWait(inComingCallDialog);
-
-			incomingcall = null;
-			inComingCallDialog = null;
-			outgoingcall = null;
-		}
-	}
-
-	/**
-	 * Events triggered on Call transaction
-	 */
-	public void callEnded(CallEvent event) {
-	}
-
-	public void incomingCallReceived(CallEvent event) {
-
-		incomingcall = event.getSourceCall();
-
-		incomingcall.addCallChangeListener(this);
-
-		/* send to miTester */
-		sendMessage(INVITE);
-
-		printMessage("RECEVING_CALL");
-	}
-
-	public void outgoingCallCreated(CallEvent event) {
-
-		/* send to miTester */
-		sendMessage(INITIATING_CALL);
-
-		printMessage(INITIATING_CALL);
-
 	}
 
 	/**
@@ -350,31 +119,24 @@ public class TcpInterfaceServiceImpl implements Runnable,
 	 *            is a server port
 	 * @param clientPort
 	 *            is a proxy port
+	 * @throws OperationFailedException
 	 */
 
-	public void register(String userid, String password,
-			String keepAliveinterval, String serverPort, String proxyPort) {
-		try {
-			AccountRegistrationWizard accRegWizzard = (AccountRegistrationWizard) TcpInterfaceActivator
-					.getAccountRegistrationWizardService();
-			SIPAccountRegistrationWizard sipaccRegWizzard = (SIPAccountRegistrationWizard) accRegWizzard;
-			sipaccRegWizzard.getRegistration().setKeepAliveInterval(
-					keepAliveinterval);
-			sipaccRegWizzard.getRegistration().setServerPort(serverPort);
-			sipaccRegWizzard.getRegistration().setProxyPort(proxyPort);
+	private void register(String userid, String password,
+			String keepAliveinterval, String serverPort, String proxyPort)
+			throws OperationFailedException {
+		AccountRegistrationWizard accRegWizzard = (AccountRegistrationWizard) TcpInterfaceActivator
+				.getAccountRegistrationWizardService();
+		SIPAccountRegistrationWizard sipaccRegWizzard = (SIPAccountRegistrationWizard) accRegWizzard;
+		sipaccRegWizzard.getRegistration().setKeepAliveInterval(
+				keepAliveinterval);
+		sipaccRegWizzard.getRegistration().setServerPort(serverPort);
+		sipaccRegWizzard.getRegistration().setProxyPort(proxyPort);
 
-			pps = accRegWizzard.signin(userid, password);
+		pps = accRegWizzard.signin(userid, password);
 
-			pps.addRegistrationStateChangeListener(this);
+		pps.addRegistrationStateChangeListener(registerEventHandler);
 
-		} catch (OperationFailedException ex) {
-
-			sendMessage("registration failed");
-			printError("registration failed", ex);
-		} catch (Exception ex) {
-			sendMessage("registration failed");
-			printError("registration failed", ex);
-		}
 	}
 
 	/**
@@ -382,7 +144,7 @@ public class TcpInterfaceServiceImpl implements Runnable,
 	 * 
 	 * @throws OperationFailedException
 	 */
-	public void setOnline(String userUri) throws OperationFailedException {
+	private void setOnline(String userUri) throws OperationFailedException {
 
 		Set<Entry<Object, ProtocolProviderFactory>> set = TcpInterfaceActivator
 				.getProtocolProviderFactories().entrySet();
@@ -408,7 +170,7 @@ public class TcpInterfaceServiceImpl implements Runnable,
 						.getService(serRef);
 
 				/* add register listener */
-				pps.addRegistrationStateChangeListener(this);
+				pps.addRegistrationStateChangeListener(registerEventHandler);
 
 				String prefix = "net.java.sip.communicator.impl.gui.accounts";
 				List<String> accounts = configService.getPropertyNamesByPrefix(
@@ -416,7 +178,6 @@ public class TcpInterfaceServiceImpl implements Runnable,
 				Iterator<String> accountsIter = accounts.iterator();
 				while (accountsIter.hasNext()) {
 					String accountRootPropName = (String) accountsIter.next();
-					printMessage(accountRootPropName);
 					String accountUID = configService
 							.getString(accountRootPropName);
 					if ((accountUID.equals(pps.getAccountID()
@@ -437,7 +198,7 @@ public class TcpInterfaceServiceImpl implements Runnable,
 	 * 
 	 */
 
-	public void unregister() {
+	private void unregister() {
 
 		try {
 
@@ -460,19 +221,21 @@ public class TcpInterfaceServiceImpl implements Runnable,
 			providerFactory.uninstallAccount(pps.getAccountID());
 
 		} catch (Exception ex) {
-			printError("de-registration failed", ex);
+
+			// System.out.println("de-registration failed" + ex);
 			// sendMessage("de-registration failed");
+
 		} finally {
 
 			if (inComingCallDialog != null)
 				CallManager.disposeCallDialogWait(inComingCallDialog);
 
 			if (callService != null) {
-				callService.removeCallListener(this);
+				callService.removeCallListener(callEventHandler);
 			}
 
 			if (incomingcall != null) {
-				incomingcall.removeCallChangeListener(this);
+				incomingcall.removeCallChangeListener(incomingCallEventHandler);
 			}
 
 			if (outgoingcall != null) {
@@ -482,15 +245,13 @@ public class TcpInterfaceServiceImpl implements Runnable,
 				while (participants.hasNext()) {
 					CallParticipant participant = (CallParticipant) participants
 							.next();
-					participant.removeCallParticipantListener(this);
+					participant
+							.removeCallParticipantListener(outgoingCallEventHandler);
 				}
 			}
 
-			pps = null;
-			outgoingcall = null;
-			incomingcall = null;
-			callService = null;
-			inComingCallDialog = null;
+			// clean the call variables
+			cleanAllVaiables();
 		}
 	}
 
@@ -536,12 +297,10 @@ public class TcpInterfaceServiceImpl implements Runnable,
 	 * @throws OperationFailedException
 	 * @throws ParseException
 	 */
-	public void invite(String contact) throws OperationFailedException,
+	private void invite(String contact) throws OperationFailedException,
 			ParseException {
-
 		OperationSetBasicTelephony telephony = (OperationSetBasicTelephony) pps
 				.getOperationSet(OperationSetBasicTelephony.class);
-
 		outgoingcall = telephony.createCall(contact);
 
 		outgoingcall.getCallParticipants();
@@ -549,7 +308,7 @@ public class TcpInterfaceServiceImpl implements Runnable,
 				.getCallParticipants();
 		while (participants.hasNext()) {
 			CallParticipant participant = (CallParticipant) participants.next();
-			participant.addCallParticipantListener(this);
+			participant.addCallParticipantListener(outgoingCallEventHandler);
 		}
 	}
 
@@ -560,7 +319,6 @@ public class TcpInterfaceServiceImpl implements Runnable,
 	 * 
 	 */
 	private void hangupCall() throws OperationFailedException {
-
 		Iterator<CallParticipant> callParticipants = null;
 
 		if (outgoingcall != null) {
@@ -583,9 +341,8 @@ public class TcpInterfaceServiceImpl implements Runnable,
 		if (inComingCallDialog != null)
 			CallManager.disposeCallDialogWait(inComingCallDialog);
 
-		incomingcall = null;
-		inComingCallDialog = null;
-		outgoingcall = null;
+		// clean the call variables
+		cleanCallVariables();
 	}
 
 	/**
@@ -595,7 +352,7 @@ public class TcpInterfaceServiceImpl implements Runnable,
 	 * 
 	 */
 
-	public void setOffline() {
+	private void setOffline() {
 		try {
 
 			pps.unregister();
@@ -605,24 +362,25 @@ public class TcpInterfaceServiceImpl implements Runnable,
 
 		} catch (OperationFailedException ex) {
 
-			printError("setOffline failed", ex);
+			// System.out.println("setOffline failed" + ex);
 			sendMessage("setOffline failed");
 
 		} catch (Exception ex) {
 
-			printError("setOffline failed", ex);
+			// System.out.println("setOffline failed" + ex);
 			sendMessage("setOffline failed");
+
 		} finally {
 
 			if (inComingCallDialog != null)
 				CallManager.disposeCallDialogWait(inComingCallDialog);
 
 			if (callService != null) {
-				callService.removeCallListener(this);
+				callService.removeCallListener(callEventHandler);
 			}
 
 			if (incomingcall != null) {
-				incomingcall.removeCallChangeListener(this);
+				incomingcall.removeCallChangeListener(incomingCallEventHandler);
 			}
 
 			if (outgoingcall != null) {
@@ -632,15 +390,14 @@ public class TcpInterfaceServiceImpl implements Runnable,
 				while (participants.hasNext()) {
 					CallParticipant participant = (CallParticipant) participants
 							.next();
-					participant.removeCallParticipantListener(this);
+					participant
+							.removeCallParticipantListener(outgoingCallEventHandler);
 				}
 			}
 
-			inComingCallDialog = null;
-			outgoingcall = null;
-			incomingcall = null;
-			callService = null;
-			pps = null;
+			// clean the call variables
+			cleanAllVaiables();
+
 		}
 
 	}
@@ -652,24 +409,16 @@ public class TcpInterfaceServiceImpl implements Runnable,
 	 * 
 	 */
 
-	public void acceptIncomingCall() throws OperationFailedException {
+	private void acceptIncomingCall() throws OperationFailedException {
 
-		CallPanel callPanel = new CallPanel(incomingcall,
+		// added short delay
+		setDelay(100);
+
+		inComingCallDialog = CallManager.openCallDialog(incomingcall,
 				GuiCallParticipantRecord.INCOMING_CALL);
 
-		inComingCallDialog = CallManager.openCallDialog(callPanel);
+		new AnswerCall(incomingcall).start();
 
-		Iterator<CallParticipant> callParticipants = incomingcall
-				.getCallParticipants();
-
-		while (callParticipants.hasNext()) {
-			CallParticipant participant = (CallParticipant) callParticipants
-					.next();
-
-			OperationSetBasicTelephony telephony = (OperationSetBasicTelephony) pps
-					.getOperationSet(OperationSetBasicTelephony.class);
-			telephony.answerCallParticipant(participant);
-		}
 	}
 
 	/**
@@ -678,20 +427,15 @@ public class TcpInterfaceServiceImpl implements Runnable,
 	 * @throws OperationFailedException
 	 * 
 	 */
-	public void rejectIncomingCall() throws OperationFailedException {
+	private void rejectIncomingCall() throws OperationFailedException {
 
-		CallPanel callPanel = new CallPanel(incomingcall,
+		// added short delay
+		setDelay(100);
+
+		inComingCallDialog = CallManager.openCallDialog(incomingcall,
 				GuiCallParticipantRecord.INCOMING_CALL);
 
-		inComingCallDialog = CallManager.openCallDialog(callPanel);
-
-		Iterator<CallParticipant> callParticipants = incomingcall
-				.getCallParticipants();
-		while (callParticipants.hasNext()) {
-			CallParticipant participant = (CallParticipant) callParticipants
-					.next();
-			callService.hangupCallParticipant(participant);
-		}
+		new RejectCall(incomingcall).start();
 
 	}
 
@@ -700,9 +444,8 @@ public class TcpInterfaceServiceImpl implements Runnable,
 		try {
 
 			// creating a socket to connect to the server
-			clientSocket = new Socket(HOST_NAME, TCP_PORT);
-
-			printMessage("Connected to localhost in port " + TCP_PORT);
+			clientSocket = new Socket("localhost", TCP_CLIENT_PORT);
+			System.out.println("Connected to localhost in port 7777");
 
 			// get Input and Output streams
 			dataOut = new DataOutputStream(clientSocket.getOutputStream());
@@ -711,76 +454,66 @@ public class TcpInterfaceServiceImpl implements Runnable,
 
 			// Communicating with the server
 			while (!done) {
-				String message = (String) dataIn.readUTF();
-				printMessage("from miTester <===" + message);
 
-				if (message.startsWith("REGISTER")) {
+				System.out
+						.println("waiting ..................................... ");
+				message = (String) dataIn.readUTF();
+				System.out.println("from miTester <===" + message);
+
+				if (message.startsWith(REGISTER)) {
 					String args[] = message.split(",");
 					if (args.length == 2) {
 						setOnline(args[1]);
 					} else {
-
-						printMessage(args[1] + " " + args[2] + " " + args[3]);
 						register(args[1], args[2], args[3], args[4], args[5]);
 					}
 				} else if (message.startsWith(INVITE)) {
 					String args[] = message.split(",");
-					printMessage(args[1]);
 					invite(args[1]);
-
-				} else if (message.startsWith("ACCEPT")) {
+				} else if (message.startsWith(ACCEPT)) {
 					acceptIncomingCall();
-				} else if (message.startsWith("REJECT")) {
+				} else if (message.startsWith(REJECT)) {
 					rejectIncomingCall();
-				} else if (message.startsWith("CANCEL")
-						&& (outgoingcall != null)) {
+				} else if (message.startsWith(CANCEL) && (outgoingcall != null)) {
 					if (outgoingcall.getCallState() != CallState.CALL_ENDED)
 						hangupCall();
-				} else if (message.startsWith("BYE")) {
+				} else if (message.startsWith(BYE)) {
 					hangupCall();
-				} else if (message.startsWith("DE-REGISTER-ALL")) {
+				} else if (message.startsWith(DE_REGISTER_ALL)) {
 					isDeRegisterAll = true;
 					unregister();
-				} else if (message.startsWith("DE-REGISTER")) {
+				} else if (message.startsWith(DE_REGISTER)) {
 					setOffline();
-				} else if (message.startsWith("QUIT")) {
+				}
 
-					GuiActivator.bundleContext.getBundle(0).stop();
+				else if (message.startsWith(QUIT)) {
+
+					// close all streams
+					closeAll();
+					
+					GuiActivator.getUIService().beginShutdown();
+
 				}
 			}
+
 		} catch (OperationFailedException ex) {
-			printError("Operation Failed ", ex);
+			System.out.println("Operation Failed " + ex);
 			sendMessage("Operation Failed");
+			done = true;
 		} catch (SocketException ex) {
-			printError("Error in TCP socket ", ex);
-			sendMessage("Operation Failed");
+			System.out.println("Error in TCP socket " + ex);
+			done = true;
 		} catch (IOException ex) {
-			printError("Error in TCP Communication ", ex);
-			sendMessage("Operation Failed");
+			System.out.println("Error in TCP Communication " + ex);
+			done = true;
 		} catch (Exception ex) {
-			printError("Error in communicating through TCP channel ", ex);
-			sendMessage("Operation Failed");
+			System.out.println("Error while communicating through TCP channel "
+					+ ex);
+			done = true;
 		} finally {
 
-			try {
-				if (dataOut != null)
-					dataOut.close();
-				if (dataIn != null) {
-					dataIn.close();
-				}
-				if (clientSocket != null) {
-					clientSocket.close();
-				}
-				dataOut = null;
-				dataIn = null;
-				clientSocket = null;
-
-				/* close all streams */
-				close();
-
-			} catch (Exception ex) {
-
-			}
+			// close all streams
+			closeAll();
 		}
 	}
 
@@ -790,66 +523,230 @@ public class TcpInterfaceServiceImpl implements Runnable,
 	 * @param msg
 	 *            a String message expected by miTester
 	 */
-	private void sendMessage(String msg) {
+	public void sendMessage(String msg) {
+
 		try {
+			if (msg.equals(REGISTERING)) {
+				callService = (OperationSetBasicTelephony) TcpInterfaceActivator
+						.getCreateCallService();
+				callService.addCallListener(callEventHandler);
+			} else if (msg.equals(INVITE)) {
+				incomingcall.addCallChangeListener(incomingCallEventHandler);
+			}
 			if (dataOut != null) {
 				dataOut.writeUTF(msg);
 				dataOut.flush();
-				printMessage(" to miTester ===>" + msg);
+				System.out.println(" to miTester ===>" + msg);
 			}
-		} catch (IOException ioExcp) {
-			printMessage("Error in sending message to miTester" + msg);
+		} catch (IOException ex) {
+			// System.out.println("Error in sending message to miTester" + msg);
 		}
+
 	}
 
-	public void setExitThread(boolean done) {
+	/**
+	 * set the 'done' flag
+	 * 
+	 * @param done
+	 */
+	public void setExitFlag(boolean done) {
 		this.done = done;
 	}
 
 	/**
-	 * This method is called to print the message in the console window
+	 * set the 'isDeRegisterAll' flag
 	 * 
-	 * @param message
-	 *            is a String message going to be printed on the console window
+	 * @param isDeRegisterAll
 	 */
-	public static void printMessage(String message) {
+
+	public void setIsRegisterAll(boolean isDeRegisterAll) {
+		this.isDeRegisterAll = isDeRegisterAll;
+
+	}
+
+	/**
+	 * get the 'isDeRegisterAll'
+	 * 
+	 * @return isDeRegisterAll
+	 */
+	public boolean getIsRegisterAll() {
+		return isDeRegisterAll;
+
+	}
+
+	/**
+	 * set the incoming call
+	 * 
+	 * @param incomingcall
+	 */
+
+	public void setInComingCall(Call incomingcall) {
+		this.incomingcall = incomingcall;
+
+	}
+
+	/**
+	 * set the out going call
+	 * 
+	 * @param outgoingcall
+	 */
+
+	public void setOutGoingCall(Call outgoingcall) {
+		this.outgoingcall = outgoingcall;
+
+	}
+
+	/**
+	 * set the incoming call dialog
+	 * 
+	 * @param in_callDialog
+	 */
+
+	public void setInComingCallDialog(CallDialog in_callDialog) {
+		this.inComingCallDialog = in_callDialog;
+
+	}
+
+	/**
+	 * get the inComingCallDialog
+	 * 
+	 * @return inComingCallDialog
+	 */
+
+	public CallDialog getInComingCallDialog() {
+		return inComingCallDialog;
+
+	}
+
+	/**
+	 * get the ProtocolProviderService return pps
+	 */
+
+	public ProtocolProviderService getProtocolProviderService() {
+		return pps;
+	}
+
+	/**
+	 * Answers all call participants in the given call.
+	 */
+	private class AnswerCall extends Thread {
+		private final Call call;
+
+		public AnswerCall(Call call) {
+			this.call = call;
+		}
+
+		public void run() {
+			ProtocolProviderService pps = call.getProtocolProvider();
+			Iterator<CallParticipant> participants = call.getCallParticipants();
+
+			while (participants.hasNext()) {
+				CallParticipant participant = participants.next();
+				OperationSetBasicTelephony telephony = (OperationSetBasicTelephony) pps
+						.getOperationSet(OperationSetBasicTelephony.class);
+
+				try {
+					telephony.answerCallParticipant(participant);
+				} catch (OperationFailedException e) {
+					System.out.println("Could not answer to : " + participant
+							+ " caused by the following exception: " + e);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Hang ups all call participants in the given call.
+	 */
+	private class RejectCall extends Thread {
+		private final Call call;
+
+		public RejectCall(Call call) {
+			this.call = call;
+		}
+
+		public void run() {
+			ProtocolProviderService pps = call.getProtocolProvider();
+			Iterator<CallParticipant> participants = call.getCallParticipants();
+
+			while (participants.hasNext()) {
+				CallParticipant participant = participants.next();
+				OperationSetBasicTelephony telephony = (OperationSetBasicTelephony) pps
+						.getOperationSet(OperationSetBasicTelephony.class);
+
+				try {
+					telephony.hangupCallParticipant(participant);
+				} catch (OperationFailedException e) {
+					System.out.println("Could not answer to : " + participant
+							+ " caused by the following exception: " + e);
+				}
+			}
+		}
+
+	}
+
+	/**
+	 * set the time delay
+	 * 
+	 * @param milliseconds
+	 */
+	private void setDelay(long milliseconds) {
 		try {
-			SYSTEM_OUT.write(message);
-			SYSTEM_OUT.write("\n");
-			SYSTEM_OUT.flush();
-		} catch (IOException ex) {
+
+			TimeUnit.MILLISECONDS.sleep(milliseconds);
+
+		} catch (InterruptedException e) {
 
 		}
 	}
 
 	/**
-	 * This method is called to print the error message in the console window
-	 * 
-	 * @param message
-	 *            is a String message going to be printed on the console window
+	 * clear the all call variables
 	 */
-	public static void printError(String errorMessage, Exception exception) {
-		try {
-			SYSTEM_ERR.write(errorMessage);
-			SYSTEM_ERR.write("\n");
-			SYSTEM_ERR.flush();
-		} catch (IOException ex) {
-		}
+	public void cleanAllVaiables() {
+
+		inComingCallDialog = null;
+		outgoingcall = null;
+		incomingcall = null;
+		callService = null;
+		pps = null;
+
+	}
+
+	/**
+	 * clean the incoming call variables
+	 */
+	public void cleanCallVariables() {
+
+		incomingcall = null;
+		inComingCallDialog = null;
+		outgoingcall = null;
 	}
 
 	/**
 	 * close all streams
-	 * 
 	 */
-	public static void close() {
+
+	public void closeAll() {
+
 		try {
-			SYSTEM_OUT.close();
-			SYSTEM_ERR.close();
-			SYSTEM_OUT.close();
-		} catch (IOException ex) {
+			if (dataOut != null) {
+				dataOut.close();
+			}
+			if (dataIn != null) {
+				dataIn.close();
+			}
+			if (clientSocket != null) {
+				clientSocket.close();
+			}
+
+			dataOut = null;
+			dataIn = null;
+			clientSocket = null;
+
+		} catch (Exception ex) {
 
 		}
-
 	}
 
 }

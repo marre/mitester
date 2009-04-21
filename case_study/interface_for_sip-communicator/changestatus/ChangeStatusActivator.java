@@ -51,7 +51,7 @@ public class ChangeStatusActivator implements BundleActivator {
 	 */
 
 	public void stop(BundleContext arg0) throws Exception {
-		System.out.println("changeStatusActivator stopped");
+//		System.out.println("changeStatusActivator stopped");
 
 	}
 

@@ -55,4 +55,3 @@ Import-Package: org.osgi.framework,
  net.java.sip.communicator.impl.gui.main.login,
  net.java.sip.communicator.impl.gui.customcontrols
  
- 

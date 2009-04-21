@@ -23,10 +23,9 @@ public class TcpInterfaceActivator implements BundleActivator {
 	private static UIService uiService = null;
 	private static AccountRegistrationWizard accRegWizz = null;
 	private static ConfigurationService configService = null;
-
 	private TcpInterfaceServiceImpl tcpServiceImpl = null;
 	private static OperationSetBasicTelephony callServicewiz = null;
-
+	
 	/**
 	 * Called when this bundle is started.
 	 * 
@@ -47,7 +46,7 @@ public class TcpInterfaceActivator implements BundleActivator {
 	 *            The execution context of the bundle being stopped.
 	 */
 	public void stop(BundleContext bundleContext) throws Exception {
-		tcpServiceImpl.setExitThread(true);
+		tcpServiceImpl.setExitFlag(true);
 	}
 
 	/**
@@ -109,15 +108,15 @@ public class TcpInterfaceActivator implements BundleActivator {
 
 			return accRegWizz;
 		} catch (InvalidSyntaxException ex) {
-			System.out.println("AccountRegistrationWizard :" + ex);
+			System.out.println( ex);
 			return null;
 
 		} catch (NullPointerException ex) {
-			System.out.println("AccountRegistrationWizard" + ex);
+			System.out.println( ex);
 			return null;
 
 		} catch (Exception ex) {
-			System.out.println("AccountRegistrationWizard" + ex);
+			System.out.println( ex);
 			return null;
 
 		}
@@ -154,15 +153,15 @@ public class TcpInterfaceActivator implements BundleActivator {
 			return callServicewiz;
 
 		} catch (InvalidSyntaxException ex) {
-			System.out.println("AccountRegistrationWizard :" + ex);
+			System.out.println( ex);
 			return null;
 
 		} catch (NullPointerException ex) {
-			System.out.println("AccountRegistrationWizard" + ex);
+			System.out.println( ex);
 			return null;
 
 		} catch (Exception ex) {
-			System.out.println("AccountRegistrationWizard" + ex);
+			System.out.println( ex);
 			return null;
 		}
 
@@ -181,13 +180,13 @@ public class TcpInterfaceActivator implements BundleActivator {
 					ProtocolProviderFactory.class.getName(), null);
 
 		} catch (InvalidSyntaxException ex) {
-			System.out.println("AccountRegistrationWizard :" + ex);
+			System.out.println( ex);
 
 		} catch (NullPointerException ex) {
-			System.out.println("AccountRegistrationWizard" + ex);
+			System.out.println( ex);
 
 		} catch (Exception ex) {
-			System.out.println("AccountRegistrationWizard" + ex);
+			System.out.println( ex);
 		}
 
 		for (int i = 0; i < serRefs.length; i++) {
@@ -219,16 +218,17 @@ public class TcpInterfaceActivator implements BundleActivator {
 			serRefs = TcpInterfaceActivator.bundleContext.getServiceReferences(
 					ProtocolProviderFactory.class.getName(), osgiFilter);
 		} catch (InvalidSyntaxException ex) {
-			System.out.println("AccountRegistrationWizard :" + ex);
+			 System.out.println( ex);
 
 		} catch (NullPointerException ex) {
-			System.out.println("AccountRegistrationWizard" + ex);
+			 System.out.println( ex);
 
 		} catch (Exception ex) {
-			System.out.println("AccountRegistrationWizard" + ex);
+			 System.out.println( ex);
 		}
 
 		return (ProtocolProviderFactory) TcpInterfaceActivator.bundleContext
 				.getService(serRefs[0]);
-	}
+	}	
 }
+
