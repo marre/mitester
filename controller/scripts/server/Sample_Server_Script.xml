@@ -324,7 +324,7 @@
     </TEST>
 
 
-    <TEST TYPE = 'Abormal' TEST-ID = 'SS-9' 
+    <TEST TYPE = 'Abnormal' TEST-ID = 'SS-9' 
                DESCRIPTION = ' SUT sends REGISTER request,
                                            miTester sends 200 OK REGISTER response with values copied for User-Agent header from the incoming request' >
 
@@ -345,7 +345,7 @@
     </TEST>
 
 
-    <TEST TYPE = 'Abormal' TEST-ID = 'SS-10' 
+    <TEST TYPE = 'Abnormal' TEST-ID = 'SS-10' 
                DESCRIPTION = ' SUT sends REGISTER request,
                                            miTester sends 200 OK REGISTER response with missing From header' >
 
@@ -362,7 +362,7 @@
     </TEST>
 
 
-    <TEST TYPE = 'Abormal' TEST-ID = 'SS-11' 
+    <TEST TYPE = 'Abnormal' TEST-ID = 'SS-11' 
                DESCRIPTION = ' SUT sends REGISTER request,
                                            Based on the count value, miTester duplicates and sends the 200 OK REGISTER response' >
 
@@ -378,7 +378,7 @@
     </TEST>
 
 
-    <TEST TYPE = 'Abormal' TEST-ID = 'SS-12' 
+    <TEST TYPE = 'Abnormal' TEST-ID = 'SS-12' 
                DESCRIPTION = ' SUT sends REGISTER request,
                                            Based on the count value, miTester duplicates and sends the From header in 200 OK REGISTER response' >
 
@@ -400,7 +400,7 @@
 
 
 
-    <TEST TYPE = 'Abormal' TEST-ID = 'SS-13' 
+    <TEST TYPE = 'Abnormal' TEST-ID = 'SS-13' 
                DESCRIPTION = ' SUT sends REGISTER request,
                                            Based on the count value, miTester duplicates and sends the branch parameter in Via header - 200 OK REGISTER response' >
 
@@ -430,7 +430,7 @@
     </TEST>
 
 
-    <TEST TYPE = 'Abormal' TEST-ID = 'SS-14' 
+    <TEST TYPE = 'Abnormal' TEST-ID = 'SS-14' 
                DESCRIPTION = ' SUT sends REGISTER request,
                                            miTester sends 200 OK REGISTER response,
                                            Based on the count value mentioned inside the TEST tag, the specific test case is executed' >
@@ -447,7 +447,7 @@
     </TEST>
 
 
-    <TEST TYPE = 'Abormal' TEST-ID = 'SS-15'  
+    <TEST TYPE = 'Abnormal' TEST-ID = 'SS-15'  
                DESCRIPTION = ' SUT sends REGISTER request,
                                            Based on the count value, miTester adds CRLF at the end of From header and sends 200 OK REGISTER response' >
 
@@ -464,7 +464,7 @@
     </TEST>
 
 
-    <TEST TYPE = 'Abormal' TEST-ID = 'SS-16'  
+    <TEST TYPE = 'Abnormal' TEST-ID = 'SS-16'  
                DESCRIPTION = ' SUT sends REGISTER request,
                                            Based on the count value, miTester removes CRLF at the end of From header and sends 200 OK REGISTER response' >
 
