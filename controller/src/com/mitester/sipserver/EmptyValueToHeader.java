@@ -1,7 +1,7 @@
 /*
  * Project: mitesterforsip
  * Author: Mobax
- * Filename: EmptyValueToHeader.java
+ * Filename: UdpCommn.java
  * Copyright (C) 2008 - 2009  Mobax Networks Private Limited
  * miTester for SIP – License Information
  * --------------------------------------------------
@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 											Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -36,16 +37,20 @@ package com.mitester.sipserver;
 
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
+
+import com.mitester.utility.MiTesterLog;
+
 /**
  * This class process the SIP header with Empty value
- * 
- * 
- * 
  */
 public class EmptyValueToHeader {
-
+	private static final Logger LOGGER = MiTesterLog
+	.getLogger(EmptyValueToHeader.class.getName());
 	public static String addEmptyValueToHeader(List<String> emptyHeader,
 	        String msg) {
+		LOGGER.info("Adding empty value to the Headers");
 		StringBuilder Message = null;
 		Message = new StringBuilder(msg);
 		if (emptyHeader != null) {

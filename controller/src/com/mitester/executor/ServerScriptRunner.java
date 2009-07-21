@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 					License 											Details
+ * Package 						License 											Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 			NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 					The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -32,41 +33,56 @@
  */
 package com.mitester.executor;
 
-import static com.mitester.executor.ExecutorConstants.*;
+import static com.mitester.executor.ExecutorConstants.ADVANCED_MODE;
+import static com.mitester.executor.ExecutorConstants.DEFAULT_TEST_INTERVAL;
+import static com.mitester.executor.ExecutorConstants.INITIAL_DELAY_SEC;
+import static com.mitester.executor.ExecutorConstants.MITESTER_DELAY;
+import static com.mitester.executor.ExecutorConstants.MITESTER_MODE;
+import static com.mitester.executor.ExecutorConstants.MITESTER_WAIT_TIME;
+import static com.mitester.executor.ExecutorConstants.MITESTER_WAIT_TIME_SEC;
+import static com.mitester.executor.ExecutorConstants.SEC;
+import static com.mitester.executor.ExecutorConstants.TEST_INTERVAL;
+import static com.mitester.media.MediaConstants.MITESTER_RTP_PORT;
+import static com.mitester.media.MediaConstants.RTCP_PACKET;
+import static com.mitester.media.MediaConstants.RTP_PACKET;
+import static com.mitester.media.MediaConstants.SUT_RTP_PORT;
+import static com.mitester.sipserver.SipServerConstants.NORMAL_MODE;
+import static com.mitester.sipserver.SipServerConstants.INCOMING_MSG;
 import static com.mitester.utility.ConfigurationProperties.CONFIG_INSTANCE;
-import gov.nist.javax.sip.message.SIPMessage;
+import static com.mitester.utility.UtilityConstants.CALL_FLOW;
+import static com.mitester.utility.UtilityConstants.NORMAL;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.SocketException;
-import java.text.ParseException;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 
-import javax.sip.InvalidArgumentException;
-import javax.sip.SipException;
+import org.apache.log4j.Logger;
 
+import com.mitester.media.MediaException;
+import com.mitester.media.RTCPHandler;
+import com.mitester.media.RTPHandler;
 import com.mitester.sipserver.ProcessSIPMessage;
-import com.mitester.sipserver.SIPHeaderValidator;
-import com.mitester.sipserver.SendRequestHandler;
-import com.mitester.sipserver.SendResponseHandler;
-
-import static com.mitester.sipserver.SipServerConstants.*;
 import com.mitester.sipserver.UdpCommn;
+import com.mitester.sipserver.headervalidation.InvalidValuesHeaderException;
+import com.mitester.sipserver.headervalidation.MissingMandatoryHeaderException;
 import com.mitester.utility.MiTesterLog;
+import com.mitester.utility.TestResult;
 import com.mitester.utility.TestUtility;
+import com.mitester.utility.ThreadControl;
 
 /**
  * This class controls the server module of the miTester. Sending and receiving
  * of SIP messages are controlled by the actions specified in the server test
  * scripts. It implements Timer threads which are used to suspend the server
  * actions temporarily for specified time duration and sets the maximum time to
- * the controller will wait for receiving SIP messages from SUT. It also sets
- * the test result based on number of actions completed in the test.
+ * the controller will wait for receiving SIP messages from SUT.
  * 
  */
 public class ServerScriptRunner {
@@ -74,60 +90,112 @@ public class ServerScriptRunner {
 	private static final Logger LOGGER = MiTesterLog
 			.getLogger(ServerScriptRunner.class.getName());
 
-	private final int MAXIMUM_SERVER_WAIT_TIME;
+	private final int MITESTER_MAX_WAIT_TIME;
 
-	private final float SERVER_SEND_DELAY;
+	private final int EXECUTION_INTERVAL;
 
-	private volatile boolean isSocketCloseCalled = false;
+	private int MITESTER_RTP_PORT_NO = 0;
 
-	private boolean isServerTestSucceed = false;
+	private int MITESTER_RTCP_PORT_NO = 0;
+
+	private final float SERVER_DELAY;
+
+	private volatile boolean isSIPPortCloseCalled = false;
+
+	private volatile boolean isMediaPortCloseCalled = false;
+
+	private volatile boolean isServerTestSucceed = false;
+
+	private volatile boolean isServerTestStart = false;
+
+	private volatile boolean isServerTimerExpired = false;
+
+	private volatile String serverActName = null;
+
+	private boolean isMediaPortSet = false;
 
 	private ScheduledExecutorService serverTimerScheduler = Executors
 			.newScheduledThreadPool(1);
 
-	private ScheduledFuture<?> serverTestEndTimer = null;
+	private ExecutorService rtpExecutors = Executors.newCachedThreadPool();
+
+	private ExecutorService rtcpExecutors = Executors.newCachedThreadPool();
+
+	private volatile ScheduledFuture<?> serverTestEndTimer = null;
 
 	private TestExecutor testExecutor = null;
 
-	private SIPHeaderValidator sipHeaderValidator = null;
+	private String testMode = CONFIG_INSTANCE.getValue(MITESTER_MODE);
 
-	private String testMode = CONFIG_INSTANCE.getValue(TEST_MODE);
+	private UdpCommn udpCommn = new UdpCommn(NORMAL_MODE, this);
 
-	private UdpCommn udpCommn = new UdpCommn();
+	private RTPHandler rtpHandler = null;
 
-	private boolean isServerTestStart = false;
+	private RTCPHandler rtcpHandler = null;
+
+	private CountDownLatch rtpCountDownLatch = null;
+
+	private CountDownLatch rtcpCountDownLatch = null;
+
+	private ThreadControl threadControl = null;
 
 	/**
-	 * constructor initialize sipServer,testExecutor,MAXIMUM_SERVER_WAIT_TIME
-	 * and SERVER_SEND_DELAY variables
+	 * It initializes
+	 * sipServer,testExecutor,MAXIMUM_MITESTER_WAIT_TIME,threadControl and
+	 * SERVER_SEND_DELAY instance variables
 	 * 
 	 * @param CheckPresence
-	 *            is a checkPresence class object
+	 *            checkPresence object
 	 * @param sipServer
-	 *            is a SipServer class object
+	 *            SipServer object
 	 * @param testExecutor
-	 *            is a testExecutorclass object
+	 *            TestExecutor object
+	 * @param threadControl
+	 *            ThreadControl object
 	 */
-	public ServerScriptRunner(SIPHeaderValidator sipHeaderValidator,
-			TestExecutor testExecutor) {
+	public ServerScriptRunner(TestExecutor testExecutor,
+			ThreadControl threadControl) {
+
 		this.testExecutor = testExecutor;
-		this.sipHeaderValidator = sipHeaderValidator;
+		this.threadControl = threadControl;
+
+		// set the RTP, RTCP port for media transport
+		if (CONFIG_INSTANCE.isKeyExists(SUT_RTP_PORT)) {
+
+			MITESTER_RTP_PORT_NO = Integer.parseInt(CONFIG_INSTANCE
+					.getValue(MITESTER_RTP_PORT));
+			MITESTER_RTCP_PORT_NO = MITESTER_RTP_PORT_NO + 1;
+
+			rtpHandler = new RTPHandler(this);
+
+			rtcpHandler = new RTCPHandler(this);
+
+			isMediaPortSet = true;
+		}
 
 		// sets the maximum server wait time
-		if (CONFIG_INSTANCE.isKeyExists(SERVER_WAIT_TIME)) {
-			MAXIMUM_SERVER_WAIT_TIME = Integer.parseInt(CONFIG_INSTANCE
-					.getValue(SERVER_WAIT_TIME));
+		if (CONFIG_INSTANCE.isKeyExists(MITESTER_WAIT_TIME)) {
+			MITESTER_MAX_WAIT_TIME = Integer.parseInt(CONFIG_INSTANCE
+					.getValue(MITESTER_WAIT_TIME));
 		} else {
-			MAXIMUM_SERVER_WAIT_TIME = SERVER_WAIT_TIME_SEC;
+			MITESTER_MAX_WAIT_TIME = MITESTER_WAIT_TIME_SEC;
 		}
 
 		// sets the server delay on sending SIP message
-		if (CONFIG_INSTANCE.isKeyExists(SERVER_DELAY)) {
-			SERVER_SEND_DELAY = Float.parseFloat(CONFIG_INSTANCE
-					.getValue(SERVER_DELAY)) * 1000;
+		if (CONFIG_INSTANCE.isKeyExists(MITESTER_DELAY)) {
+			SERVER_DELAY = Float.parseFloat(CONFIG_INSTANCE
+					.getValue(MITESTER_DELAY)) * 1000;
 
 		} else {
-			SERVER_SEND_DELAY = INITIAL_DELAY_SEC;
+			SERVER_DELAY = INITIAL_DELAY_SEC;
+		}
+
+		// set the client execution interval
+		if (CONFIG_INSTANCE.isKeyExists(TEST_INTERVAL)) {
+			EXECUTION_INTERVAL = Integer.parseInt(CONFIG_INSTANCE
+					.getValue(TEST_INTERVAL)) * 1000;
+		} else {
+			EXECUTION_INTERVAL = DEFAULT_TEST_INTERVAL;
 		}
 	}
 
@@ -135,9 +203,9 @@ public class ServerScriptRunner {
 	 * Execute the Server Test
 	 * 
 	 * @param serverTest
-	 *            is a com.mitester.jaxbparser.server.TEST object represents the
-	 *            set of server actions
-	 * @return Runnable
+	 *            consists of set of server actions
+	 * 
+	 * @return Runnable interface
 	 */
 
 	public Runnable frameServerRunnable(
@@ -149,154 +217,140 @@ public class ServerScriptRunner {
 		// clean-up the SIPMessageList
 		ProcessSIPMessage.cleanUpSipMessageList();
 
-		// clean-up the CheckPresenceList
-		sipHeaderValidator.cleanUpheaderList();
-
 		return new Runnable() {
 			public void run() {
 
 				try {
 
-					int actionCount = 0;
-
-					com.mitester.jaxbparser.server.ACTION action = null;
-
-					com.mitester.jaxbparser.server.WAIT wait = null;
+					if (testMode.equalsIgnoreCase("ADVANCED"))
+						threadControl.take();
 
 					List<Object> serverActions = serverTest.getACTIONOrWAIT();
 
-					boolean isWAIT = false;
+					if (isMediaPortSet) {
 
-					int noOfServerActions = serverActions.size();
-
-					// initialize the UDP socket
-					if (prepareUDP()) {
-
-						isServerTestStart = true;
-
-						for (Object object : serverActions) {
-
-							if (object instanceof com.mitester.jaxbparser.server.ACTION) {
-
-								action = (com.mitester.jaxbparser.server.ACTION) object;
-								isWAIT = false;
-
-							} else {
-
-								wait = (com.mitester.jaxbparser.server.WAIT) object;
-								isWAIT = true;
-							}
-
-							if (isWAIT) {
-
-								TestUtility
-										.printMessage("server action in sleeping ...");
-								LOGGER.info("server action in sleeping ...");
-
-								// wait for specified time
-								waitServerAction(wait);
-
-								TestUtility
-										.printMessage("resumed server action ...");
-								LOGGER.info("resumed server action ...");
-
-							} else if (action.getRECV() != null) {
-
-								// receive and process the SIP message
-								receiveSIPMessage(action);
-
-							} else if (action.getSEND() != null) {
-
-								// send the message to SUT
-								if (!sendSIPMessage(action))
-									break;
-
-							} else {
-								break;
-							}
-
-							actionCount++;
-
-						}
+						// run server script with enabled SIP, RTP, RTCP ports
+						runScript_With_MediaSupport(serverActions);
 
 					} else {
-						TestUtility
-								.printMessage("Error at starting server ...");
 
+						// run server script with enabled SIP port only
+						runScript_Without_MediaSupport(serverActions);
 					}
 
-					if ((actionCount >= noOfServerActions)
-							&& (noOfServerActions > 0)) {
-						isServerTestSucceed = true;
-					}
+				} catch (com.mitester.executor.ControllerException ex) {
+					if (!isServerTimerExpired)
+						LOGGER.error(ex.getMessage());
 
-				} catch (SocketException ex) {
-					TestUtility
-							.printMessage("UDP datagram socket closed forcefully");
-				} catch (NullPointerException ex) {
-					TestUtility.printError("Error while executing server test",
-							ex);
-				} catch (ParseException ex) {
-					TestUtility.printError(
-							"Error while processing SIP message", ex);
-				} catch (SipException ex) {
-					TestUtility.printError(
-							"Error while processing SIP message", ex);
-				} catch (InvalidArgumentException ex) {
-					TestUtility.printError("Error while running server test",
-							ex);
-				} catch (IOException ex) {
-					TestUtility.printError("Error while running server test",
-							ex);
-				} catch (IndexOutOfBoundsException ex) {
-					TestUtility.printError("Error while running server test",
-							ex);
+					// set the fail reason
+					if (testExecutor.getIsValidationFailed())
+						TestResult.setFailReason(testExecutor
+								.getBufferedFailString()
+								+ ", " + ex.getMessage());
+					else
+						TestResult.setFailReason(ex.getMessage());
+
+				} catch (com.mitester.media.MediaException ex) {
+					if (!isServerTimerExpired)
+						LOGGER.error(ex.getMessage());
+					// set the fail reason
+					if (testExecutor.getIsValidationFailed())
+						TestResult.setFailReason(testExecutor
+								.getBufferedFailString()
+								+ ", " + ex.getMessage());
+					else
+						TestResult.setFailReason(ex.getMessage());
+				} catch (com.mitester.sipserver.headervalidation.MissingMandatoryHeaderException ex) {
+					LOGGER.error(ex.getMessage());
+					TestResult.setFailReason(ex.getMessage());
+				} catch (com.mitester.sipserver.headervalidation.InvalidValuesHeaderException ex) {
+					LOGGER.error(ex.getMessage());
+					TestResult.setFailReason(ex.getMessage());
+				} catch (Exception ex) {
+
+					if (!isServerTimerExpired)
+						LOGGER.error(ex.getMessage());
+
+					// set the fail reason
+					if (testExecutor.getIsValidationFailed())
+						TestResult.setFailReason(testExecutor
+								.getBufferedFailString()
+								+ ", Error while executing server test script");
+					else
+						TestResult
+								.setFailReason("Error while executing server test script");
 				} finally {
 
 					try {
-						
+
 						// stop timer
 						stopServerTimer();
 
-						if (!isSocketCloseCalled) {
+						// close the sip data gram socket
+						if (!isSIPPortCloseCalled) {
 
 							// close UDP socket
-							udpCommn.closeUdpSocket();
+							if (udpCommn.closeUdpSocket()) {
+								LOGGER.info("udp datagram socket is closed");
+							}
 						}
 
-						// delay at end of execution
-						startServerWaitTimer(SERVER_EXECUTION_INTERVAL);
+						// close the media data gram sockets
+						if ((isMediaPortSet) && (!isMediaPortCloseCalled)) {
+
+							// close RTP socket
+							if (rtpHandler.stopListeningRTP()) {
+								LOGGER.info("RTP datagram socket is closed");
+							}
+							// close RTCP socket
+							if (rtcpHandler.stopListeningRTCP()) {
+								LOGGER.info("RTCP datagram socket is closed");
+							}
+						}
+
+						// setting delay
+						startServerWaitTimer(EXECUTION_INTERVAL);
 
 						if (!udpCommn.isBounded())
-							LOGGER.info("UDP socket closed ...");
+							LOGGER.info("SIP UDP socket is closed");
 
 						if (isServerTestSucceed) {
-							
-							isServerTestSucceed = sipHeaderValidator
-									.validateHeaders();
+							if (testExecutor.getIsValidationFailed()) {
+								isServerTestSucceed = false;
+								LOGGER.error(testExecutor
+										.getBufferedFailString());
+								TestResult.setFailReason(testExecutor
+										.getBufferedFailString());
+							}
 							TestUtility
-									.printMessage("server actions completed");
+									.printMessage("server actions completed...");
 							LOGGER.info("server actions completed ...");
+						} else
+							LOGGER.info("incomplete server scenario...");
 
+						// count down latch
+						if (testExecutor.getServerTestCountDownLatch()
+								.getCount() == 1) {
+							testExecutor.getServerTestCountDownLatch()
+									.countDown();
 						}
-						if ((testExecutor.getServerCountDownLatch().getCount()) > 0) {
-							testExecutor.getServerCountDownLatch().countDown();
-						}
+
 					} catch (Exception ex) {
 
 					}
-
 				}
 			}
 		};
 	}
 
 	/**
-	 * method called during the server execution for suspending server action
-	 * temporarily
+	 * This method is called to suspend server action temporarily
 	 * 
+	 * @param amount
+	 *            of time server will wait for receiving SIP message from SUT in
+	 *            ADVANCED mode
 	 */
-	private void startServerWaitTimer(long time) {
+	public void startServerWaitTimer(long time) {
 
 		try {
 
@@ -307,77 +361,108 @@ public class ServerScriptRunner {
 	}
 
 	/**
-	 * method called during the server execution to stop the timer
+	 * It stops serverTestEndTimer
 	 * 
 	 */
-	private void stopServerTimer() {
+	public void stopServerTimer() {
+
 		if (serverTestEndTimer != null) {
 			serverTestEndTimer.cancel(true);
 			serverTestEndTimer = null;
-			LOGGER.info("server timer stopped");
+			LOGGER.info("server timer is stopped");
 		}
 	}
 
 	/**
 	 * This method is called when tool started to wait for expected SIP message
-	 * from client. starts timer, wait for specified time duration if expected
-	 * SIP message not received in specified time duration, forcefully ends the
+	 * from client. It starts timer, wait for specified time duration if
+	 * expected SIP message not received in specified time, forcefully ends the
 	 * server test.
 	 */
-	private void startServerTimer() {
+	public void startServerTimer() {
 
-		if ((testMode.equals(TEST_MODE_ADVANCED))) {
+		if ((testMode.equals(ADVANCED_MODE))) {
+
 			if (serverTestEndTimer != null) {
 				serverTestEndTimer.cancel(true);
 				serverTestEndTimer = null;
 			}
-			LOGGER.info("server timer started");
+			LOGGER.info("server timer is started");
 			serverTestEndTimer = serverTimerScheduler.schedule(new Runnable() {
 				public void run() {
-					try {
 
-						serverTestEndTimer.cancel(true);
-						serverTestEndTimer = null;
-						isSocketCloseCalled = true;
-						
-						// close UDP socket
-						udpCommn.closeUdpSocket();
-						
-						
+					isServerTimerExpired = true;
 
-					} catch (Exception ex) {
+					String actionName = getServerActionName();
 
+					if (testExecutor.getIsValidationFailed()
+							&& (!actionName.startsWith(RTP_PACKET) && !actionName
+									.startsWith(RTCP_PACKET))) {
+						String errStr = testExecutor.getBufferedFailString()
+								+ ", Expected '" + getServerActionName()
+								+ "' SIP message is not received from SUT";
+						TestResult.setFailReason(errStr);
+						LOGGER.error(errStr);
+
+					} else if (testExecutor.getIsValidationFailed()
+							&& (actionName.startsWith(RTP_PACKET) || actionName
+									.startsWith(RTCP_PACKET))) {
+						String errStr = testExecutor.getBufferedFailString()
+								+ ", Expected '" + getServerActionName()
+								+ "' message is not received from SUT";
+						TestResult.setFailReason(errStr);
+						LOGGER.error(errStr);
+
+					} else if (!testExecutor.getIsValidationFailed()
+							&& (!actionName.startsWith(RTP_PACKET) && !actionName
+									.startsWith(RTCP_PACKET))) {
+						String errStr = "Expected '" + getServerActionName()
+								+ "' SIP message is not received from SUT";
+						TestResult.setFailReason(errStr);
+						LOGGER.error(errStr);
+					} else {
+						String errStr = "Expected '" + getServerActionName()
+								+ "' message is not received from SUT";
+						TestResult.setFailReason(errStr);
+						LOGGER.error(errStr);
 					}
 
+					LOGGER
+							.info("stopping the server as the server timer is expired");
+
+					// stop the server test execution
+					stopServerTestExecution();
+
 				}
-			}, MAXIMUM_SERVER_WAIT_TIME, TimeUnit.SECONDS);
+			}, MITESTER_MAX_WAIT_TIME, TimeUnit.SECONDS);
 		}
 	}
 
 	/**
-	 * This method called during the server execution to clean up the server
-	 * test
+	 * It used to clean the ServerScriptRunner instance variables
 	 */
 	private void cleanUpServerTest() {
-		
+
 		isServerTestSucceed = false;
 		serverTestEndTimer = null;
-		isSocketCloseCalled = false;
+		isSIPPortCloseCalled = false;
+		isMediaPortCloseCalled = false;
 		isServerTestStart = false;
-
+		isServerTimerExpired = false;
+		serverActName = null;
 	}
 
 	/**
-	 * This method return the server test result
+	 * This method return the server test result status
 	 * 
-	 * @return is a boolean value represents the test result
+	 * @return server test result status
 	 */
 	public boolean getServerTestResult() {
 		return isServerTestSucceed;
 	}
 
 	/**
-	 * This method returns the ScheduledExecutorService
+	 * It returns the ScheduledExecutorService
 	 * 
 	 * @returns ScheduledExecutorService
 	 */
@@ -386,92 +471,59 @@ public class ServerScriptRunner {
 	}
 
 	/**
-	 * initialize the UDP data gram
+	 * It initializes the UDP data gram socket for SIP transaction
 	 * 
-	 * @throws SocketException
-	 * @throws IOException
+	 * @throws ControllerException
 	 */
 
-	private boolean prepareUDP() throws SocketException, IOException {
+	private boolean prepareUDP() throws ControllerException {
 
-		if (!udpCommn.isBounded()) {
-			udpCommn.initializeUdpSocket();
-			LOGGER.info("UDP Listener initialized ...");
+		try {
+			if (!udpCommn.isBounded()) {
+				udpCommn.initializeUdpSocket();
+				LOGGER.info("UDP Listener is initialized");
 
-		} else {
+			} else {
 
-			// close UDP data gram socket
-			udpCommn.closeUdpSocket();
+				// close UDP data gram socket if already exist
+				if (udpCommn.closeUdpSocket()) {
+					LOGGER.info("udp datagram socket is closed");
+				}
 
-			// delay made for data gram socket creation
-			startServerWaitTimer(SERVER_EXECUTION_INTERVAL);
+				// making delay for creating data gram socket
+				startServerWaitTimer(1800);
 
-			udpCommn.initializeUdpSocket();
-			LOGGER.info("UDP Listener initialized ...");
+				// initialize the udp socket
+				udpCommn.initializeUdpSocket();
 
+				LOGGER.info("UDP Listener is initialized");
+
+			}
+		} catch (SocketException ex) {
+			LOGGER.error(ex.getMessage(), ex);
+			throw new com.mitester.executor.ControllerException(
+					"Error while initializing UDP datagram for SIP transaction");
+
+		} catch (IOException ex) {
+			LOGGER.error(ex.getMessage(), ex);
+			throw new com.mitester.executor.ControllerException(
+					"Error while initializing UDP datagram for SIP transaction");
+
+		} catch (Exception ex) {
+			LOGGER.error(ex.getMessage(), ex);
+			throw new com.mitester.executor.ControllerException(
+					"Error while initializing UDP datagram for SIP transaction");
 		}
 
 		return true;
 	}
 
 	/**
-	 * Send the SIP message
-	 * 
-	 * @param action
-	 *            is a com.mitester.jaxbparser.server.ACTION object includes
-	 *            action related information
-	 * @return true after sending the SIP message successfully
-	 * @throws NullPointerException
-	 * @throws SocketException
-	 * @throws ParseException
-	 * @throws SipException
-	 * @throws InvalidArgumentException
-	 * @throws IOException
-	 */
-	private boolean sendSIPMessage(com.mitester.jaxbparser.server.ACTION action)
-			throws NullPointerException, SocketException, ParseException,
-			SipException, InvalidArgumentException, IOException {
-
-		boolean isSent = false;
-
-		String serverActionValue = action.getValue();
-
-		if (SERVER_SEND_DELAY != INITIAL_DELAY_SEC) {
-
-			LOGGER.info("setting server delay : " + SERVER_SEND_DELAY / 1000
-					+ " secs");
-			startServerWaitTimer((long) SERVER_SEND_DELAY);
-		}
-
-		TestUtility.printMessage("sending......." + serverActionValue + "\n");
-		LOGGER.info("sending......." + serverActionValue + "\n");
-
-		if (action.getSEND().startsWith(RESPONSE_MSG)) {
-
-			if (!(SendResponseHandler.sendResponse(action, udpCommn))) {
-				LOGGER.info("sending message failed");
-				isSent = false;
-			}
-			isSent = true;
-
-		} else if (action.getSEND().startsWith(REQUEST_MSG)) {
-			if (!(SendRequestHandler.sendRequest(action, udpCommn))) {
-				LOGGER.info("sending message failed");
-				isSent = false;
-			}
-			isSent = true;
-		}
-
-		return isSent;
-
-	}
-
-	/**
-	 * this method used to suspend the server test execution
+	 * It used to suspend the server test execution
 	 * 
 	 * @param wait
-	 *            is a com.mitester.jaxbparser.server.WAIT object includes the
-	 *            Time related information
+	 *            is a com.mitester.jaxbparser.server.WAIT object consists of
+	 *            the time information
 	 */
 
 	private void waitServerAction(com.mitester.jaxbparser.server.WAIT wait) {
@@ -492,123 +544,9 @@ public class ServerScriptRunner {
 	}
 
 	/**
-	 * receive and process the SIP message
+	 * It returns the server start status
 	 * 
-	 * @param action
-	 *            is a com.mitester.jaxbparser.server.ACTION object includes
-	 *            action related information
-	 * @return true if expected SIP message received
-	 * @throws SocketException
-	 * @throws IOException
-	 * @throws NullPointerException
-	 * @throws ParseException
-	 * @throws SipException
-	 */
-
-	private void receiveSIPMessage(com.mitester.jaxbparser.server.ACTION action)
-			throws SocketException, IOException, NullPointerException,
-			ParseException, SipException {
-
-		/* start server timer */
-		startServerTimer();
-
-		TestUtility.printMessage("waiting for......." + action.getValue());
-		LOGGER.info("waiting for......." + action.getValue());
-
-		do {
-
-			String packet;
-
-			// receive UDP data gram
-			packet = udpCommn.receiveUdpMessage();
-
-			LOGGER.info(LINE_SEPARATOR + INCOMING_SIP_MESSAGE + LINE_SEPARATOR
-					+ packet + INCOMING_SIP_MESSAGE);
-
-			// process SipMessage
-			SIPMessage sipMsg = ProcessSIPMessage.processSIPMessage(packet,
-					INCOMING_MSG);
-
-			if (sipMsg != null) {
-
-				String method = sipMsg.getCSeq().getMethod();
-				if (action.getRECV().startsWith(REQUEST_MSG)
-						&& action.getValue().startsWith(method)) {
-
-					TestUtility.printMessage(packet);
-
-					/* add the message for validation */
-					sipHeaderValidator.setheaderList(sipMsg);
-
-					break;
-
-				} else if (action.getRECV().startsWith(RESPONSE_MSG)) {
-
-					if (sipMsg.getFirstLine().startsWith("SIP/2.0")) {
-
-						String serverActionValue = action.getValue();
-
-						String methodName = serverActionValue.substring(
-								serverActionValue
-										.lastIndexOf(UNDERLINE_SEPARATOR) + 1,
-								serverActionValue.length());
-						String FirstLine = sipMsg.getFirstLine();
-						String Fline[] = FirstLine.split(EMPTY_SEPARATOR);
-						int resCode = Integer.parseInt(Fline[1]);
-						int underindex = serverActionValue
-								.indexOf(UNDERLINE_SEPARATOR);
-						int equalindex = serverActionValue
-								.indexOf(EQUAL_SEPARATOR);
-						String code = serverActionValue.substring(
-								equalindex + 1, underindex);
-						int responseCode = Integer.parseInt(code);
-						if (methodName.equals(method)
-								&& responseCode == resCode) {
-							TestUtility.printMessage(packet);
-
-							/* add the message for validation */
-							sipHeaderValidator.setheaderList(sipMsg);
-							break;
-
-						} else {
-							TestUtility.printMessage(packet);
-							TestUtility
-									.printMessage("Recevied response code does not match with the expected one");
-							LOGGER
-									.info("Recevied response code does not match with the expected one");
-
-							// remove the added sip message
-							ProcessSIPMessage.removeSipMessageFromList();
-
-						}
-					} else {
-
-						LOGGER.info("ignored the incoming SIP message");
-
-						// remove the added sip message
-						ProcessSIPMessage.removeSipMessageFromList();
-					}
-				} else {
-
-					LOGGER.info("ignored the incoming SIP message");
-
-					// remove the added sip message
-					ProcessSIPMessage.removeSipMessageFromList();
-
-				}
-			}
-
-		} while (true);
-
-		// stop the timer if run
-		stopServerTimer();
-
-	}
-
-	/**
-	 * return the server test start status
-	 * 
-	 * @return boolean
+	 * @return true if server started successfully
 	 */
 
 	public boolean getServerTestStart() {
@@ -616,4 +554,521 @@ public class ServerScriptRunner {
 		return isServerTestStart;
 	}
 
+	/**
+	 * execute the server test script with enabled media ports
+	 * 
+	 * @param serverActions
+	 *            consists of list of server actions
+	 * @return true if all server actions executed
+	 * @throws MissingMandatoryHeaderException
+	 * @throws InvalidValuesHeaderException
+	 * @throws ControllerException
+	 * @throws MediaException
+	 */
+
+	public boolean runScript_With_MediaSupport(List<Object> serverActions)
+			throws MissingMandatoryHeaderException,
+			InvalidValuesHeaderException, ControllerException, MediaException {
+
+		int actionCount = 0;
+
+		com.mitester.jaxbparser.server.ACTION action = null;
+
+		com.mitester.jaxbparser.server.WAIT wait = null;
+
+		boolean isWAIT = false;
+
+		try {
+
+			int noOfServerActions = serverActions.size();
+
+			rtpCountDownLatch = new CountDownLatch(1);
+
+			rtcpCountDownLatch = new CountDownLatch(1);
+
+			// initialize the RTP port
+			rtpExecutors.execute(rtpHandler
+					.startListeningRTP(MITESTER_RTP_PORT_NO));
+
+			// initialize the RTCP port
+			rtcpExecutors.execute(rtcpHandler
+					.startListeningRTCP(MITESTER_RTCP_PORT_NO));
+
+			// wait for opening RTP port
+			rtpCountDownLatch.await();
+
+			// wait for opening RTCP port
+			rtcpCountDownLatch.await();
+
+			// initialize the SIP port and check whether SIP, RTP and RTCP ports
+			// are opened
+			if (prepareUDP() && rtpHandler.isRTPSocketOpened()
+					&& rtcpHandler.isRTCPSocketOpened()) {
+
+				isServerTestStart = true;
+
+				for (Object object : serverActions) {
+
+					if (testMode.equalsIgnoreCase("USER")) {
+
+						if (threadControl.getStopExecution())
+							threadControl.stopExecution();
+
+						if (threadControl.isThreadStop()) {
+							TestUtility
+									.printMessage(NORMAL,
+											"Press 'p' + ENTER key to resume the execution");
+							threadControl.take();
+						} else
+							threadControl.take();
+					}
+
+					if (object instanceof com.mitester.jaxbparser.server.ACTION) {
+
+						action = (com.mitester.jaxbparser.server.ACTION) object;
+						isWAIT = false;
+
+					} else {
+
+						wait = (com.mitester.jaxbparser.server.WAIT) object;
+						isWAIT = true;
+					}
+
+					if (isWAIT) {
+
+						TestUtility
+								.printMessage("server action in sleeping...");
+						LOGGER.info("server action in sleeping...");
+
+						// wait for specified time
+						waitServerAction(wait);
+
+						TestUtility.printMessage("resumed server action...");
+						LOGGER.info("resumed server action...");
+
+					} else if (action.getRECV() != null) {
+
+						// set ACTION name
+						setServerActionName(action.getValue());
+
+						if (action.getValue().startsWith(RTP_PACKET)) {
+
+							// receive RTP message
+							rtpHandler.receiveRTPPacket(action);
+
+						} else if (action.getValue().startsWith(RTCP_PACKET)) {
+
+							// receive RTCP message
+							rtcpHandler.receiveRTCPPacket(action);
+
+						} else {
+
+							// receive and process the SIP message
+							recAndProcSIPMessage(action);
+						}
+
+					} else if (action.getSEND() != null) {
+
+						// set ACTION name
+						setServerActionName(action.getValue());
+
+						if (action.getValue().startsWith(RTP_PACKET)) {
+
+							// send RTP message
+							if (!rtpHandler.sendRTPPacket(action)) {
+								TestUtility
+										.printMessage("sending RTP message is failed, hence server test forcefully ended");
+								LOGGER
+										.error("sending RTP message is failed, hence server test forcefully ended");
+								break;
+							}
+
+						} else if (action.getValue().startsWith(RTCP_PACKET)) {
+
+							// send RTCP message
+							if (!rtcpHandler.sendRTCPPacket(action)) {
+
+								TestUtility
+										.printMessage("sending RTCP message is failed, hence server test forcefully ended");
+								LOGGER
+										.error("sending RTCP message is failed, hence server test forcefully ended");
+								break;
+							}
+
+						} else {
+
+							// send SIP message
+							if (!udpCommn.sendSIPMessage(action, SERVER_DELAY)) {
+								TestUtility
+										.printMessage("sending SIP message is failed, hence server test forcefully ended");
+								LOGGER
+										.error("sending SIP message is failed, hence server test forcefully ended");
+								break;
+							}
+						}
+
+					} else {
+						break;
+					}
+
+					actionCount++;
+
+				}
+
+			} else {
+
+				TestUtility.printMessage("Error while starting sip server");
+				LOGGER.error("Error while starting sip server");
+			}
+
+			if ((actionCount >= noOfServerActions) && (noOfServerActions > 0)) {
+				isServerTestSucceed = true;
+			}
+
+		} catch (com.mitester.executor.ControllerException ex) {
+			throw ex;
+
+		} catch (com.mitester.media.MediaException ex) {
+			throw ex;
+
+		} catch (com.mitester.sipserver.headervalidation.InvalidValuesHeaderException ex) {
+
+			throw ex;
+
+		} catch (com.mitester.sipserver.headervalidation.MissingMandatoryHeaderException ex) {
+			throw ex;
+
+		} catch (InterruptedException ex) {
+			LOGGER.error(ex.getMessage(), ex);
+			throw new com.mitester.executor.ControllerException(
+					"Error at executing server test script");
+
+		} catch (Exception ex) {
+			LOGGER.error(ex.getMessage(), ex);
+			throw new com.mitester.executor.ControllerException(
+					"Error at executing server test script");
+		}
+		return isServerTestSucceed;
+
+	}
+
+	/**
+	 * execute the server test script without media support
+	 * 
+	 * @param serverActions
+	 *            consists of server actions
+	 * 
+	 * @return true if all server actions completed
+	 * @throws MissingMandatoryHeaderException
+	 * @throws InvalidValuesHeaderException
+	 * @throws ControllerException
+	 */
+
+	public boolean runScript_Without_MediaSupport(List<Object> serverActions)
+			throws MissingMandatoryHeaderException,
+			InvalidValuesHeaderException, ControllerException {
+
+		int actionCount = 0;
+
+		com.mitester.jaxbparser.server.ACTION action = null;
+
+		com.mitester.jaxbparser.server.WAIT wait = null;
+
+		boolean isWAIT = false;
+
+		try {
+
+			int noOfServerActions = serverActions.size();
+
+			// initialize the UDP socket
+			if (prepareUDP()) {
+
+				isServerTestStart = true;
+
+				for (Object object : serverActions) {
+
+					if (testMode.equalsIgnoreCase("USER")) {
+
+						if (threadControl.getStopExecution())
+							threadControl.stopExecution();
+
+						if (threadControl.isThreadStop()) {
+							TestUtility
+									.printMessage(NORMAL,
+											"Press 'p' + ENTER key to resume the execution");
+							threadControl.take();
+						} else
+							threadControl.take();
+					}
+
+					if (object instanceof com.mitester.jaxbparser.server.ACTION) {
+
+						action = (com.mitester.jaxbparser.server.ACTION) object;
+						isWAIT = false;
+
+					} else {
+
+						wait = (com.mitester.jaxbparser.server.WAIT) object;
+						isWAIT = true;
+					}
+
+					if (isWAIT) {
+
+						TestUtility
+								.printMessage("server action in sleeping...");
+						LOGGER.info("server action in sleeping...");
+
+						// wait for specified time
+						waitServerAction(wait);
+
+						TestUtility.printMessage("resumed server action...");
+						LOGGER.info("resumed server action...");
+
+					} else if (action.getRECV() != null) {
+
+						// set ACTION name
+						setServerActionName(action.getValue());
+
+						// receive and process the SIP message
+						recAndProcSIPMessage(action);
+
+					} else if (action.getSEND() != null) {
+
+						// set ACTION name
+						setServerActionName(action.getValue());
+
+						// send SIP message
+						if (!udpCommn.sendSIPMessage(action, SERVER_DELAY)) {
+							TestUtility
+									.printMessage("sending SIP message is failed, hence server test forcefully ended");
+							LOGGER
+									.error("sending SIP message is failed, hence server test forcefully ended");
+							break;
+						}
+
+					} else {
+						break;
+					}
+
+					actionCount++;
+
+				}
+
+			} else {
+
+				TestUtility.printMessage("Error while starting sip server");
+				LOGGER.error("Error while starting sip server");
+			}
+
+			if ((actionCount >= noOfServerActions) && (noOfServerActions > 0)) {
+				isServerTestSucceed = true;
+			}
+
+		} catch (com.mitester.executor.ControllerException ex) {
+			throw ex;
+
+		} catch (com.mitester.sipserver.headervalidation.InvalidValuesHeaderException ex) {
+			throw ex;
+
+		} catch (com.mitester.sipserver.headervalidation.MissingMandatoryHeaderException ex) {
+			throw ex;
+
+		} catch (Exception ex) {
+			LOGGER.error(ex.getMessage(), ex);
+			throw new com.mitester.executor.ControllerException(
+					"Error at executing server test script");
+
+		}
+
+		return isServerTestSucceed;
+
+	}
+
+	/**
+	 * 
+	 * @return RTP count down latch object
+	 */
+
+	public CountDownLatch getRTPCountDownLatch() {
+		return rtpCountDownLatch;
+	}
+
+	/**
+	 * 
+	 * @return RTCP count down latch object
+	 */
+	public CountDownLatch getRTCPCountDownLatch() {
+		return rtcpCountDownLatch;
+	}
+
+	/**
+	 * shutdown RTP executors
+	 */
+	public void shutDownRtpExecutors() {
+
+		LOGGER.info("called shutDownRtpExecutors");
+
+		try {
+			rtpExecutors.shutdownNow();
+			rtpExecutors.awaitTermination(3, TimeUnit.SECONDS);
+		} catch (InterruptedException e) {
+
+		}
+
+	}
+
+	/**
+	 * shut down RTCP executors
+	 */
+	public void shutDownRtcpExecutors() {
+
+		LOGGER.info("called shutDownRtcpExecutors");
+
+		try {
+			rtcpExecutors.shutdownNow();
+			rtcpExecutors.awaitTermination(3, TimeUnit.SECONDS);
+		} catch (InterruptedException e) {
+
+		}
+
+	}
+
+	/**
+	 * stops the server test execution
+	 */
+
+	public void stopServerTestExecution() {
+
+		if (!System.getProperty("os.name").startsWith("SunOS")
+				&& !System.getProperty("os.name").startsWith("Solaris"))
+			LOGGER.info("called stopServerTestExecution");
+
+		try {
+
+			if (serverTestEndTimer != null)
+				serverTestEndTimer.cancel(true);
+			serverTestEndTimer = null;
+
+			isSIPPortCloseCalled = true;
+
+			// close UDP socket
+			if (udpCommn.closeUdpSocket()
+					&& (!System.getProperty("os.name").startsWith("SunOS") && !System
+							.getProperty("os.name").startsWith("Solaris"))) {
+				LOGGER.info("udp datagram socket is closed");
+			}
+
+			if (isMediaPortSet) {
+
+				isMediaPortCloseCalled = true;
+
+				// close RTP socket
+				if (rtpHandler.stopListeningRTP()
+						&& (!System.getProperty("os.name").startsWith("SunOS") && !System
+								.getProperty("os.name").startsWith("Solaris"))) {
+					LOGGER.info("RTP datagram socket is closed");
+				}
+
+				// close RTCP socket
+				if (rtcpHandler.stopListeningRTCP()
+						&& (!System.getProperty("os.name").startsWith("SunOS") && !System
+								.getProperty("os.name").startsWith("Solaris"))) {
+					LOGGER.info("RTCP datagram socket closed");
+				}
+
+			}
+
+		} catch (Exception ex) {
+
+			LOGGER.error("error while stopping server test execution", ex);
+		}
+	}
+
+	/**
+	 * return the server ACTION name
+	 * 
+	 * @return the current ACTION name
+	 */
+
+	private String getServerActionName() {
+		return serverActName;
+	}
+
+	/**
+	 * set the server ACTION name
+	 * 
+	 * @param actName
+	 *            name of the current ACTION
+	 */
+
+	private void setServerActionName(String actName) {
+		this.serverActName = actName;
+	}
+
+	/**
+	 * receive and process the incoming SIP message
+	 * 
+	 * @param action
+	 *            consists of server action details
+	 * @throws ControllerException
+	 * @throws InvalidValuesHeaderException
+	 * @throws MissingMandatoryHeaderException
+	 */
+
+	private void recAndProcSIPMessage(
+			com.mitester.jaxbparser.server.ACTION action)
+			throws ControllerException, InvalidValuesHeaderException,
+			MissingMandatoryHeaderException {
+
+		try {
+
+			udpCommn.receiveSIPMessage(action);
+		} catch (MissingMandatoryHeaderException e) {
+			if (!CONFIG_INSTANCE.isKeyExists("COMPLETE_CALL_FLOW")) {
+				throw e;
+			} else if (!CONFIG_INSTANCE.getValue("COMPLETE_CALL_FLOW")
+					.equalsIgnoreCase("YES")) {
+				throw e;
+			} else {
+
+				TestUtility.printMessage(CALL_FLOW, INCOMING_MSG,
+						"MSG RECEIVED", action.getValue());
+
+				// set validation failed status
+				testExecutor.setIsValidationFailed(true);
+
+				if ((testExecutor.getBufferedFailString().indexOf(e
+						.getMessage())) < 0)
+					testExecutor.bufferFailString(e.getMessage());
+			}
+		} catch (InvalidValuesHeaderException e) {
+			if (!CONFIG_INSTANCE.isKeyExists("COMPLETE_CALL_FLOW")) {
+				throw e;
+			} else if (!CONFIG_INSTANCE.getValue("COMPLETE_CALL_FLOW")
+					.equalsIgnoreCase("YES")) {
+				throw e;
+			} else {
+
+				TestUtility.printMessage(CALL_FLOW, INCOMING_MSG,
+						"MSG RECEIVED", action.getValue());
+
+				// set validation failed status
+				testExecutor.setIsValidationFailed(true);
+
+				if ((testExecutor.getBufferedFailString().indexOf(e
+						.getMessage())) < 0)
+					testExecutor.bufferFailString(e.getMessage());
+			}
+		} catch (ControllerException e) {
+			throw e;
+		}
+	}
+
+	/**
+	 * return isServerTimerExpired status
+	 */
+
+	public boolean getIsServerTimerExpired() {
+		return isServerTimerExpired;
+	}
 }

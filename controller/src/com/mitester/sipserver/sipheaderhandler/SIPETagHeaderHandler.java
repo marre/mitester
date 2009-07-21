@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 										Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -41,7 +42,7 @@ import gov.nist.javax.sip.message.SIPMessage;
 
 import java.text.ParseException;
 import java.util.List;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 import javax.sip.InvalidArgumentException;
 import javax.sip.SipException;
@@ -82,7 +83,7 @@ import com.mitester.utility.MiTesterLog;
 public class SIPETagHeaderHandler {
 
 	private static final Logger LOGGER = MiTesterLog
-	        .getLogger(SIPETagHeaderHandler.class.getName());
+			.getLogger(SIPETagHeaderHandler.class.getName());
 
 	/**
 	 * addSIPETagHeader is used to add SIP-ETag Header
@@ -97,13 +98,13 @@ public class SIPETagHeaderHandler {
 	 * @throws IndexOutOfBoundsException
 	 */
 	public static SIPETagHeader createSIPETagHeader(Header headerNew)
-	        throws SipException, ParseException, InvalidArgumentException,
-	        IndexOutOfBoundsException {
+			throws SipException, ParseException, InvalidArgumentException,
+			IndexOutOfBoundsException {
 
 		LOGGER.info("Creating "
-		        + SIPHeaders.getSipHeaderfromString(
-		                headerNew.getName().toUpperCase()).toString()
-		        + " Header");
+				+ SIPHeaders.getSipHeaderfromString(
+						headerNew.getName().toUpperCase()).toString()
+				+ " Header");
 
 		SIPETagHeader sipetag = null;
 		SipFactory factory = SipFactory.getInstance();
@@ -120,15 +121,15 @@ public class SIPETagHeaderHandler {
 		List<Param> param = headerNew.getParam();
 		for (Param objParam : param) {
 			LOGGER
-			        .warning("As Per RFC 3903 SIP-Etag Header does not have any parameters. Hence Ignoring the parameters\t"
-			                + "Parameter Name: "
-			                + objParam.getName()
-			                + "\t"
-			                + "Parameter Value: " + objParam.getValue());
+					.warn("As Per RFC 3903 SIP-Etag Header does not have any parameters. Hence Ignoring the parameters\t"
+							+ "Parameter Name: "
+							+ objParam.getName()
+							+ "\t"
+							+ "Parameter Value: " + objParam.getValue());
 		}
 		// 
 		// LOGGER
-		// .warning("As Per RFC 3903 SIP-Etag Header does not have any parameters. Hence Ignoring the parameters\t");
+		// .warn("As Per RFC 3903 SIP-Etag Header does not have any parameters. Hence Ignoring the parameters\t");
 		return sipetag;
 	}
 
@@ -147,9 +148,9 @@ public class SIPETagHeaderHandler {
 	 * @throws java.lang.IllegalArgumentException
 	 */
 	public static SIPMessage removeSIPETagHeader(Header header,
-	        SIPMessage sipMessage, String type) throws SipException,
-	        ParseException, InvalidArgumentException, NullPointerException,
-	        java.lang.IllegalArgumentException {
+			SIPMessage sipMessage, String type) throws SipException,
+			ParseException, InvalidArgumentException, NullPointerException,
+			java.lang.IllegalArgumentException {
 		Request request = null;
 		Response response = null;
 		SIPMessage returnsipMessage = null;
@@ -157,11 +158,19 @@ public class SIPETagHeaderHandler {
 			response = (Response) sipMessage;
 		else
 			request = (Request) sipMessage;
-
-		if (type.equalsIgnoreCase(SipServerConstants.SERVER_RESPONSE))
-			response.removeHeader(SIPETag.SIP_ETAG);
-		else
-			request.removeHeader(SIPETag.SIP_ETAG);
+		List<Param> removeParams = header.getParam();
+		if (removeParams.size() == 0) {
+			if (type.equalsIgnoreCase(SipServerConstants.SERVER_RESPONSE))
+				response.removeHeader(SIPETag.SIP_ETAG);
+			else
+				request.removeHeader(SIPETag.SIP_ETAG);
+		} else {
+			for (Param objParam : removeParams) {
+				LOGGER
+						.warn("As Per RFC 3903 SIP-Etag Header does not have any parameters. Hence Ignoring the parameters\t"
+								+ "Parameter Name: " + objParam.getName());
+			}
+		}
 		if (type.equalsIgnoreCase(SipServerConstants.SERVER_RESPONSE))
 			returnsipMessage = (SIPMessage) response;
 		else

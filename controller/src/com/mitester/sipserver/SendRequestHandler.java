@@ -1,7 +1,7 @@
 /*
  * Project: mitesterforsip
  * Author: Mobax
- * Filename: SendRequestHandler.java
+ * Filename: UdpCommn.java
  * Copyright (C) 2008 - 2009  Mobax Networks Private Limited
  * miTester for SIP – License Information
  * --------------------------------------------------
@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 											Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -55,11 +56,12 @@ import gov.nist.javax.sip.message.SIPMessage;
 
 import java.io.IOException;
 import java.net.SocketException;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 import javax.sip.InvalidArgumentException;
 import javax.sip.SipException;
 import javax.sip.message.Request;
+import javax.xml.bind.JAXBException;
 
 import com.mitester.sipserver.sipmessagehandler.ACKRequestHandler;
 import com.mitester.sipserver.sipmessagehandler.BYERequestHandler;
@@ -74,6 +76,7 @@ import com.mitester.sipserver.sipmessagehandler.PUBLISHRequestHandler;
 import com.mitester.sipserver.sipmessagehandler.REFERRequestHandler;
 import com.mitester.sipserver.sipmessagehandler.REGISTERRequestHandler;
 import com.mitester.sipserver.sipmessagehandler.SUBSCRIBERequestHandler;
+import com.mitester.sipserver.sipmessagehandler.UNKNOWNRequestHandler;
 import com.mitester.sipserver.sipmessagehandler.UPDATERequestHandler;
 import com.mitester.utility.MiTesterLog;
 import com.mitester.utility.TestUtility;
@@ -81,9 +84,6 @@ import com.mitester.utility.TestUtility;
 /**
  * 
  * sends the SIP Request message
- * 
- * 
- * 
  */
 public class SendRequestHandler {
 	private static final Logger LOGGER = MiTesterLog
@@ -94,7 +94,7 @@ public class SendRequestHandler {
 	        com.mitester.jaxbparser.server.ACTION action, UdpCommn udpCommn)
 	        throws NullPointerException, java.text.ParseException,
 	        SipException, InvalidArgumentException, SocketException,
-	        IOException {
+	        IOException, JAXBException {
 
 		boolean isSent = true;
 		SIPMessage sipMsg = null;
@@ -111,6 +111,7 @@ public class SendRequestHandler {
 		if (action.getDialog() != null) {
 			dialog = action.getDialog();
 		}
+	
 		if (send.equalsIgnoreCase(INVITE_METHOD)) {
 			request = INVITERequestHandler.createINVITERequest(dialog);
 		} else if (send.equalsIgnoreCase(UPDATE_METHOD)) {
@@ -164,6 +165,8 @@ public class SendRequestHandler {
 			sipMsg = ProcessSIPMessage.getSIPMessage(INVITE_METHOD, method,
 			        SERVER_REQUEST);
 			request = REFERRequestHandler.createREFERRequest(sipMsg,dialog);
+		} else {
+			request = UNKNOWNRequestHandler.createUNKNOWNRequest(send);
 		}
 		msg = request.toString();
 

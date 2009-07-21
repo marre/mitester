@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 										Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -36,19 +37,23 @@ package com.mitester.sipserver.sipheaderhandler;
 
 import gov.nist.javax.sip.header.HeaderFactoryImpl;
 import gov.nist.javax.sip.header.extensions.JoinHeader;
+import gov.nist.javax.sip.message.SIPMessage;
 
 import java.text.ParseException;
 import java.util.List;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 import javax.sip.InvalidArgumentException;
 import javax.sip.SipException;
 import javax.sip.SipFactory;
 import javax.sip.header.HeaderFactory;
+import javax.sip.message.Request;
+import javax.sip.message.Response;
 
 import com.mitester.jaxbparser.server.Header;
 import com.mitester.jaxbparser.server.Param;
 import com.mitester.sipserver.SIPHeaders;
+import com.mitester.sipserver.SipServerConstants;
 import com.mitester.utility.MiTesterLog;
 
 /**
@@ -134,5 +139,40 @@ public class JoinHeaderHandler {
 		joinHeader = hfimpl.createJoinHeader(CallID, ToTag, FromTag);
 		return joinHeader;
 	}
+	/**
+	 * To remove join Header from the sip message
+	 * @param header
+	 * @param sipMessage
+	 * @param type
+	 * @return
+	 * @throws SipException
+	 * @throws ParseException
+	 * @throws InvalidArgumentException
+	 * @throws NullPointerException
+	 * @throws java.lang.IllegalArgumentException
+	 */
+	public static SIPMessage removeJoinHeader(Header header,
+	        SIPMessage sipMessage, String type) throws SipException,
+	        ParseException, InvalidArgumentException, NullPointerException,
+	        java.lang.IllegalArgumentException {
 
+		Request request = null;
+		Response response = null;
+		SIPMessage returnsipMessage = null;
+		if (type.equalsIgnoreCase(SipServerConstants.SERVER_RESPONSE))
+			response = (Response) sipMessage;
+		else
+			request = (Request) sipMessage;
+
+		if (type.equalsIgnoreCase(SipServerConstants.SERVER_RESPONSE))
+			response.removeHeader(JoinHeader.NAME);
+		else
+			request.removeHeader(JoinHeader.NAME);
+		if (type.equalsIgnoreCase(SipServerConstants.SERVER_RESPONSE))
+			returnsipMessage = (SIPMessage) response;
+		else
+			returnsipMessage = (SIPMessage) request;
+		return returnsipMessage;
+	
+	}
 }

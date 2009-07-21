@@ -1,6 +1,6 @@
-miTester for SIP - Release Version 1.1
+miTester for SIP - Release Version 2.0
 ---------------------------------------
-Date: April 21th, 2009
+Date: July 20th, 2009
 
 Project Lead/Maintainer (2009-current): Mobax
 
@@ -14,7 +14,7 @@ Note:
 -----
 - controller (holds the complete source and dependent jars to build miTester)
 
-	- lib (contains the dependent jars to build miTester)
+	- lib (contains the dependent jars to build miTester and lo4j property file)
 		- jain-sip-api-1.2.jar
 		- jain-sip-ri-1.2.90.jar
 		- log4j-1.2.15.jar
@@ -23,18 +23,30 @@ Note:
                 - jaxb-impl-2.0.jar
                 - jaxb-xjc-2.0.jar
                 - jsr173_1.0_api.jar
+                - JNetStreamStandalone.jar
+                - log4j.properties
+		- validateHeader.properties
 
-
-	- scripts (holds client and server Scripts)
+	- scripts (holds client and server scripts)
 		- client (holds Client Script)
-			- Sample_Client_Script.xml (Sample Client Script)
+			- Sample_Client_Script.xml (sample client script)
 		- server (holds Server Script)
-			- Sample_Server_Script.xml (Sample Server Script)
+			- Sample_Server_Script.xml (sample server script)
 
 	- miTester.properties (property file)
+
+        - media (holds media packets)
+		- RTCP_SR.txt (RTCP SR packet)
+		- RTP.txt (RTP packet)
+		- RTP.pcap (RTP packet)
+                - RTP_BYE.txt (RTP BYE packet)
+                - RTP_RR.txt (RTP RR packet)
+                - RTCP_SDES_wronglength.txt (RTCP SDES packet)
 	
         - src
 		- com (holds the source files)
+
+        - validate.xml (holds the header/presence validation details)
 
 
 Description

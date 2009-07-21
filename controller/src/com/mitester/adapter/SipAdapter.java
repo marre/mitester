@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 					License 											Details
+ * Package 						License 											Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 			NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 					The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -32,19 +33,23 @@
  */
 package com.mitester.adapter;
 
+import static com.mitester.executor.ExecutorConstants.MITESTER_MODE;
+import static com.mitester.utility.ConfigurationProperties.CONFIG_INSTANCE;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.logging.Logger;
+import java.net.SocketTimeoutException;
 
-import static com.mitester.utility.ConfigurationProperties.CONFIG_INSTANCE;
+import org.apache.log4j.Logger;
+
 import com.mitester.utility.ClientStarter;
-
 import com.mitester.utility.MiTesterLog;
 import com.mitester.utility.TestUtility;
+import com.mitester.utility.ThreadControl;
 
 /**
  * This class implements all the methods declared in the Adapter interface.
@@ -56,14 +61,8 @@ public class SipAdapter implements Adapter {
 	private static final Logger LOGGER = MiTesterLog.getLogger(SipAdapter.class
 			.getName());
 
-	private static final String TCP_SERVER_PORT = "TCP_SERVER_PORT";
-
-	private static final String TEST_APPLICATION_PATH = "TEST_APPLICATION_PATH";
-
-	private static final String TEST_MODE_ADVANCED = "ADVANCED";
-
 	private static final String TEST_MODE = CONFIG_INSTANCE
-			.getValue("TEST_MODE");
+			.getValue(MITESTER_MODE);
 
 	private ServerSocket serverSocket = null;
 
@@ -90,96 +89,93 @@ public class SipAdapter implements Adapter {
 	private int tcpServerPort = 0;
 
 	private String testApplicationPath = null;
+	
+	private ThreadControl threadControl = null;
 
-	public SipAdapter() {
+	public SipAdapter(ThreadControl threadControl) {
+		
+		this.threadControl = threadControl;
 
-		if (TEST_MODE.equals(TEST_MODE_ADVANCED)) {
+		if (TEST_MODE.equals("ADVANCED")) {
 
 			tcpServerPort = Integer.parseInt(CONFIG_INSTANCE
-					.getValue(TCP_SERVER_PORT));
-
-			testApplicationPath = CONFIG_INSTANCE
-					.getValue(TEST_APPLICATION_PATH);
-
+					.getValue("SUT_TCP_PORT"));
+			testApplicationPath = CONFIG_INSTANCE.getValue("SUT_PATH");
 		}
 
 	}
 
 	public boolean isConnected() {
 
-		if ((connection != null) && (connection.isConnected())) {
-			LOGGER.info("client is connected...");
+		if ((connection != null) && (connection.isConnected()))
 			return true;
-		} else {
-			LOGGER.info("client is not connected...");
+		else
 			return false;
-		}
 	}
 
-	public String receive() throws IOException, SocketException,
-			InterruptedException {
+	public String receive() throws IOException {
 		String message = dataIn.readUTF();
-		LOGGER.info("received message from SUT: " + message);
+		LOGGER.info("received the message from SUT: " + message);
 		return message;
 	}
 
-	public void send(String message) throws IOException, SocketException,
-			InterruptedException {
+	public void send(String actionMessage) throws IOException {
+		TestUtility.printMessage("message sending to SUT ==> " + actionMessage);
+		LOGGER.info("message sending to SUT: " + actionMessage);
 
-		dataOut.writeUTF(message);
+		dataOut.writeUTF(actionMessage);
 		dataOut.flush();
-		TestUtility.printMessage("Msg to SUT ==>" + message);
-		LOGGER.info("message sending to SUT: " + message);
 	}
 
 	public boolean start() {
 
 		try {
+
 			isStarted = false;
 
 			serverSocket = new ServerSocket(tcpServerPort);
 
-			// get the running process details before start the application
+			// get the running process details before start
 			processesBefStart = executeClient.getProcessInfo();
 
 			// start client
-			if (!isConnected()) {
+			if (!isConnected())
+				LOGGER.info("SUT is not connected");
 
-				if (TestUtility.isFileExist(testApplicationPath)) {
-
-					isStarted = executeClient.startClient(testApplicationPath);
-
-				} else {
-
-					LOGGER.info("Test Application Path does not exists");
-					TestUtility
-							.printMessage("Test Application Path does not exists");
-					return isStarted;
-				}
-			}
+			isStarted = executeClient.startClient(testApplicationPath);
 
 			if (!isStarted) {
-				LOGGER.severe("client not started");
+				LOGGER.error("SUT is not started");
 				return isStarted;
 			} else {
-				LOGGER.info("client started");
-				
+				LOGGER.info("SUT is started");
 				isStopCalled = false;
 			}
 
 			connection = serverSocket.accept();
-			TestUtility.printMessage("TCP/IP established with client");
-			LOGGER.info("TCP/IP established with client");
+
+			TestUtility
+					.printMessage("TCP/IP connection is established with client");
+			LOGGER.info("TCP/IP connection is established with client");
 
 			dataOut = new DataOutputStream(connection.getOutputStream());
 
 			dataIn = new DataInputStream(connection.getInputStream());
 
-			// get the running process details after start the application
+			// get the running process details after start
 			processesAfStart = executeClient.getProcessInfo();
 
+			// stop the check Timer
+			threadControl.stopCheckTimer();
+
+			// release the thread once TCP channel is established with SUT and
+			// miTester
+			threadControl.resume();
+
 			String processes[] = processesAfStart.split(";");
+
 			StringBuilder sb = new StringBuilder();
+
 			for (int i = 0; i < processes.length; i++) {
 
 				if (processesBefStart.indexOf(processes[i]) < 0) {
@@ -188,26 +184,14 @@ public class SipAdapter implements Adapter {
 					sb.append(";");
 				}
 			}
-
 			newProcesses = new String(sb.toString());
+			LOGGER.info("process IDs after starting SUT " + newProcesses);
 
-		} catch (InterruptedException ex) {
-			TestUtility.printError("Error while starting the client ", ex);
-			isStarted = false;
-		} catch (SecurityException ex) {
-			TestUtility.printError("Error while starting the client ", ex);
-			isStarted = false;
-		} catch (SocketException ex) {
-			TestUtility.printError("Error while starting the client ", ex);
-			isStarted = false;
 		} catch (IOException ex) {
-			TestUtility.printError("Error while starting the client ", ex);
+			TestUtility.printError("Error while starting the SUT ", ex);
 			isStarted = false;
-		} catch (NullPointerException ex) {
-			TestUtility.printError("Error while starting the client ", ex);
-			isStarted = false;
-		} catch (IllegalArgumentException ex) {
-			TestUtility.printError("Error while starting the client ", ex);
+		} catch (Exception ex) {
+			TestUtility.printError("Error while starting the SUT ", ex);
 			isStarted = false;
 		}
 		return isStarted;
@@ -219,42 +203,22 @@ public class SipAdapter implements Adapter {
 		try {
 
 			isStopped = false;
-			
+
 			// stop client
 			if (isConnected()) {
-				
+
 				isStopCalled = true;
-				
+
 				isStopped = executeClient.stopClient(testApplicationPath,
 						processesBefStart, newProcesses);
 			}
 
-			if (isStopped) {
-
-				LOGGER.info("client closed");
-			} else {
-
-				LOGGER.info("client not closed");
-			}
-
-		} catch (InterruptedException ex) {
-			TestUtility.printError("Error while closing the client", ex);
-			isStopped = false;
-		} catch (SecurityException ex) {
-			TestUtility.printError("Error while closing the client ", ex);
-			isStopped = false;
-		} catch (SocketException ex) {
-			TestUtility.printError("Error while closing the client", ex);
-			isStopped = false;
 		} catch (IOException ex) {
-			TestUtility.printError("Error while closing the client", ex);
-			isStopped = false;
-		} catch (NullPointerException ex) {
-			TestUtility.printError("Error while closing the client", ex);
-			isStopped = false;
-		} catch (IllegalArgumentException ex) {
-			TestUtility.printError("Error while closing the client", ex);
-			isStopped = false;
+			TestUtility.printError("Error while stopping the SUT ", ex);
+			isStarted = false;
+		} catch (Exception ex) {
+			TestUtility.printError("Error while stopping the SUT ", ex);
+			isStarted = false;
 		}
 		return isStopped;
 	}
@@ -271,32 +235,37 @@ public class SipAdapter implements Adapter {
 		return isStopCalled;
 	}
 
-	public boolean checkClientAvailability() {
+	public boolean checkClientAvailable() {
 
 		boolean isAvailable = false;
 
-		// get the running process details
-		String curRunningProcess = null;
-		
 		try {
-			curRunningProcess = executeClient.getProcessInfo();
 
-			String process[] = newProcesses.split(";");
+			// set socket timeout
+			connection.setSoTimeout(500);
+			receive();
 
-			for (int i = 0; i < process.length; i++) {
+		}
 
-				if (curRunningProcess.indexOf(process[i]) >= 0) {
-					isAvailable = true;
-					break;
+		catch (SocketTimeoutException ex) {
 
-				} else {
-					isAvailable = false;
-				}
+			try {
+
+				// set socket timeout
+				connection.setSoTimeout(0);
+
+				isAvailable = true;
+
+				LOGGER.info("SUT exists");
+
+			} catch (SocketException e) {
 			}
 
 		} catch (IOException e) {
+			LOGGER.error("SUT doesn't exist ");
 
 		}
+
 		return isAvailable;
 	}
 
@@ -314,7 +283,8 @@ public class SipAdapter implements Adapter {
 				serverSocket.close();
 
 		} catch (Exception ex) {
-			TestUtility.printError("Error at cleaning socket ", ex);
+			TestUtility
+					.printError("Error while cleaning socket variables ", ex);
 
 		} finally {
 

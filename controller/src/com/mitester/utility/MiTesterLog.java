@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 					License 											Details
+ * Package 						License 											Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 			NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 					The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -32,89 +33,30 @@
  */
 package com.mitester.utility;
 
-import java.text.DecimalFormat;
-import java.util.Calendar;
-import java.util.logging.Logger;
-import java.util.logging.FileHandler;
-import java.util.logging.Formatter;
-import java.util.logging.LogRecord;
-import java.io.IOException;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+import org.apache.log4j.helpers.NullEnumeration;
 
 /**
- * This class used to create and format the log handler and also the create
- * LOGGER for the specified class
+ * This class used to create logger and load the logging properties for the specified class
  * 
  */
 
 public class MiTesterLog {
 
-	private static Logger logger;
-
-	private static FileHandler fileHandler;
-
-	private static final String LINE_SEPARATOR = System
-			.getProperty("line.separator");
-
-	private static final DecimalFormat TWO_DIGIT_FORMAT = new DecimalFormat(
-			"00");
-
-	private static final DecimalFormat THREE_DIGIT_FORMAT = new DecimalFormat(
-			"000");
-
-	static {
-		try {
-
-			boolean append = true;
-			fileHandler = new FileHandler("miTester.log", append);
-			fileHandler.setFormatter(new Formatter() {
-				public String format(LogRecord rec) {
-
-					StringBuilder buf = new StringBuilder();
-
-					// current time
-					Calendar cal = Calendar.getInstance();
-					int hour = cal.get(Calendar.HOUR_OF_DAY);
-					int minutes = cal.get(Calendar.MINUTE);
-					int seconds = cal.get(Calendar.SECOND);
-					int millis = cal.get(Calendar.MILLISECOND);
-
-					buf.append(TWO_DIGIT_FORMAT.format(hour)).append(':');
-					buf.append(TWO_DIGIT_FORMAT.format(minutes)).append(':');
-					buf.append(TWO_DIGIT_FORMAT.format(seconds)).append('.');
-					buf.append(THREE_DIGIT_FORMAT.format(millis)).append(' ');
-					buf.append(' ');
-					buf.append(rec.getLevel().getLocalizedName());
-					buf.append("\t");
-					buf.append(":");
-					buf.append(' ');
-					String loggerName = rec.getLoggerName();
-					if (loggerName == null)
-						loggerName = rec.getSourceClassName();
-
-					if (loggerName.startsWith("com.")) {
-						buf.append(loggerName.substring("com.".length()));
-					} else
-						buf.append(rec.getLoggerName());
-
-					if (rec.getSourceMethodName() != null) {
-						buf.append(".");
-						buf.append(rec.getSourceMethodName());
-						buf.append("() ");
-					}
-					buf.append(rec.getMessage());
-					buf.append(LINE_SEPARATOR);
-					return buf.toString();
-				}
-			});
-		} catch (IOException e) {
-
-		}
-	}
-
+	/**
+	 * it creates and returns the logger
+	 * 
+	 * @param name  of the class
+	 * @return Logger
+	 */
 	public static Logger getLogger(String name) {
-		logger = Logger.getLogger(name);
-		logger.addHandler(fileHandler);
-		logger.setUseParentHandlers(false);
+		
+		Logger logger = Logger.getLogger(name);
+		
+		if (logger.getAllAppenders() instanceof NullEnumeration ) {
+			PropertyConfigurator.configure("lib/log4j.properties");
+		}
 		return logger;
 	}
 

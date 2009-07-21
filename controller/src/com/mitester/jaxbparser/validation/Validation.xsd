@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+
+ <xs:simpleType name="nameEnumType">
+  <xs:restriction base="xs:NCName">
+   <xs:enumeration value="req"/>
+   <xs:enumeration value="res"/>
+  </xs:restriction>
+ </xs:simpleType>
+
+  <xs:element name="VALIDATION">
+    <xs:complexType>
+      <xs:choice maxOccurs="unbounded">
+        <xs:element ref="MANDATORY"/>
+        <xs:element ref="OPTIONAL"/>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="MANDATORY">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="method"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="OPTIONAL">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="method"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="method">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="header"/>
+      </xs:sequence>
+      <xs:attribute name="name" use="required" type="nameEnumType"/>
+      <xs:attribute name="value" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="header">
+    <xs:complexType>
+      <xs:attribute name="name" use="required" type="xs:NCName"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

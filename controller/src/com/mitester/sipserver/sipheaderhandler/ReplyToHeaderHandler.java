@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 										Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -41,7 +42,7 @@ import gov.nist.javax.sip.message.SIPMessage;
 
 import java.text.ParseException;
 import java.util.List;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 import javax.sip.InvalidArgumentException;
 import javax.sip.SipException;
@@ -155,6 +156,7 @@ public class ReplyToHeaderHandler {
 	        SIPMessage sipMessage, String type) throws SipException,
 	        ParseException, InvalidArgumentException, NullPointerException,
 	        java.lang.IllegalArgumentException {
+		
 		Request request = null;
 		Response response = null;
 		SIPMessage returnsipMessage = null;
@@ -162,11 +164,22 @@ public class ReplyToHeaderHandler {
 			response = (Response) sipMessage;
 		else
 			request = (Request) sipMessage;
-
+		ReplyToHeader replyto = null;
+		if (type.equalsIgnoreCase(SipServerConstants.SERVER_RESPONSE))
+			replyto = (ReplyToHeader) response.getHeader(ReplyToHeader.NAME);
+		else
+			replyto = (ReplyToHeader) request.getHeader(ReplyToHeader.NAME);
+		List<Param> removeParams = header.getParam();
+		if (removeParams.size() == 0) {
 		if (type.equalsIgnoreCase(SipServerConstants.SERVER_RESPONSE))
 			response.removeHeader(ReplyTo.REPLY_TO);
 		else
 			request.removeHeader(ReplyTo.REPLY_TO);
+		} else {
+			for (Param parameterName : removeParams) {
+				replyto.removeParameter(parameterName.getName());
+			}
+		}
 		if (type.equalsIgnoreCase(SipServerConstants.SERVER_RESPONSE))
 			returnsipMessage = (SIPMessage) response;
 		else

@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 										Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -33,7 +34,6 @@
  *  
  */
 package com.mitester.sipserver.sipmessagehandler;
-
 
 import static com.mitester.sipserver.SipServerConstants.SERVER_REQUEST;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_DISPLAY_NAME;
@@ -45,12 +45,14 @@ import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstant
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.TO_DISPLAY_NAME;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.TO_PORT;
 import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.TO_USER_NAME;
-import gov.nist.javax.sip.header.Via;
+import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.AT;
+
 import gov.nist.javax.sip.header.ViaList;
 import gov.nist.javax.sip.message.MessageFactoryImpl;
 import gov.nist.javax.sip.message.SIPMessage;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 import javax.sip.InvalidArgumentException;
@@ -69,16 +71,20 @@ import javax.sip.header.ToHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 
+import org.apache.log4j.Logger;
+
 import com.mitester.sipserver.ProcessSIPMessage;
+import com.mitester.utility.MiTesterLog;
 
 /**
  * A method to update the on-going/early session with the updated SDP
  * parameters.
- * 
- * 
- * 
  */
 public class UPDATERequestHandler {
+
+	private static final Logger LOGGER = MiTesterLog
+			.getLogger(UPDATERequestHandler.class.getName());
+
 	/**
 	 * Generating UPDATE Request
 	 * 
@@ -90,98 +96,106 @@ public class UPDATERequestHandler {
 	 * @throws InvalidArgumentException
 	 * @throws PeerUnavailableException
 	 */
-	public static Request createUPDATERequest(SIPMessage sipmsg,String dialog)
-	        throws NullPointerException, SipException,
-	        java.text.ParseException, InvalidArgumentException,
-	        PeerUnavailableException {
+	public static Request createUPDATERequest(SIPMessage sipmsg, String dialog)
+			throws NullPointerException, SipException,
+			java.text.ParseException, InvalidArgumentException,
+			PeerUnavailableException {
+		LOGGER.info("Creation of UPDATE Request is started");
 		MessageFactoryImpl messageFactoryImpl = new MessageFactoryImpl();
 		Request request;
 		SipFactory factory = SipFactory.getInstance();
 		HeaderFactory headerFactory = factory.createHeaderFactory();
 		AddressFactory addressFactory = factory.createAddressFactory();
-		ArrayList<ViaHeader> viaHeaders = new ArrayList<ViaHeader>();
+		List<ViaHeader> viaHeaders = new ArrayList<ViaHeader>();
 		Random remotetag = new Random();
 		if (sipmsg != null) {
 			ViaList via = sipmsg.getViaHeaders();
 			String viaValue = via.getValue();
 			int index = viaValue.indexOf("=");
 			String branch = viaValue.substring(index + 1, viaValue.length());
-			ViaHeader viaHeaderBye = headerFactory.createViaHeader("127.0.0.1",
-			        5070, "udp", branch);
-			ViaList viaHeader = new ViaList();
-			viaHeader.add((Via) viaHeaderBye);
-			SipURI requestURI = addressFactory
-			        .createSipURI("user", "127.0.0.1");
-			MaxForwardsHeader maxfwd = headerFactory
-			        .createMaxForwardsHeader(70);
+			ViaHeader viaHeaderBye = MessageHandlerHelper.createViaHeader(
+					LOOP_BACK_ADDRESS, FROM_PORT, PROTOCOL, branch, headerFactory);
+
+			viaHeaders.add(viaHeaderBye);
+			SipURI requestURI = MessageHandlerHelper.createSIPURI(FROM_USER_NAME,
+					LOOP_BACK_ADDRESS, addressFactory);
+			MaxForwardsHeader maxfwd = MessageHandlerHelper
+					.createMaxForwardsHeader(70, headerFactory);
 			long invitecseq = sipmsg.getCSeq().getSeqNumber();
-			CSeqHeader cseq = headerFactory.createCSeqHeader(invitecseq + 1,
-			        Request.UPDATE);
+			CSeqHeader cseq = MessageHandlerHelper.createCSeqHeader(
+					invitecseq + 1, Request.UPDATE, headerFactory);
 			ToHeader toHeader;
 			FromHeader fromHeader;
 			CallIdHeader callid;
-			if(dialog == null) {
+			if (dialog == null) {
 				callid = sipmsg.getCallId();
+			
 				Address from = sipmsg.getFrom().getAddress();
 				String fromTag = sipmsg.getFromTag();
 				Address to = sipmsg.getTo().getAddress();
 				String toTag = sipmsg.getToTag();
 				fromHeader = headerFactory.createFromHeader(to, toTag);
 				toHeader = headerFactory.createToHeader(from, fromTag);
-			} else {
-				SIPMessage sipMsg = ProcessSIPMessage.getSIPMessage(dialog, Request.UPDATE,
-				        SERVER_REQUEST);
+				} else {
+				SIPMessage sipMsg = ProcessSIPMessage.getSIPMessage(dialog,
+						Request.UPDATE, SERVER_REQUEST);
 				callid = sipMsg.getCallId();
 				fromHeader = sipMsg.getFrom();
 				toHeader = sipMsg.getTo();
-				if(toHeader.getTag() == null) {
+				if (toHeader.getTag() == null) {
 					toHeader.setTag(Integer.toHexString(remotetag.nextInt()));
-				}
-			}			
-			request = messageFactoryImpl.createRequest(requestURI,
-			        Request.UPDATE, callid, cseq, fromHeader,
-			        toHeader, viaHeader, maxfwd);
+				}				
+			}
+			request = MessageHandlerHelper.createRequest(requestURI,
+					Request.UPDATE, callid, cseq, fromHeader, toHeader,
+					viaHeaders, maxfwd, messageFactoryImpl);
 			request.setMethod(Request.UPDATE);
 		} else {
-			SipURI fromAddress = addressFactory.createSipURI(FROM_USER_NAME,
-			        LOOP_BACK_ADDRESS);
+			SipURI fromAddress = MessageHandlerHelper.createSIPURI(
+					FROM_USER_NAME, LOOP_BACK_ADDRESS, addressFactory);
 			fromAddress.setPort(FROM_PORT);
-			Address fromNameAddress = addressFactory.createAddress(fromAddress);
+			Address fromNameAddress = MessageHandlerHelper.createAddress(
+					fromAddress, addressFactory);
 			fromNameAddress.setDisplayName(FROM_DISPLAY_NAME);
-			FromHeader fromHeader = headerFactory.createFromHeader(
-			        fromNameAddress, Integer.toHexString(remotetag.nextInt()));
-			SipURI toAddress = addressFactory.createSipURI(TO_USER_NAME,
-			        LOOP_BACK_ADDRESS);
+			FromHeader fromHeader = MessageHandlerHelper.createFromHeader(
+					fromNameAddress, Integer.toHexString(remotetag.nextInt()),
+					headerFactory);
+			SipURI toAddress = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
+					LOOP_BACK_ADDRESS, addressFactory);
 			toAddress.setPort(TO_PORT);
-			Address toNameAddress = addressFactory.createAddress(toAddress);
+			Address toNameAddress = MessageHandlerHelper.createAddress(
+					toAddress, addressFactory);
 			toNameAddress.setDisplayName(TO_DISPLAY_NAME);
-			ToHeader toHeader = headerFactory.createToHeader(toNameAddress,
-			        null);
+			ToHeader toHeader = MessageHandlerHelper.createToHeader(
+					toNameAddress, null, headerFactory);
 
-			SipURI requestURI = addressFactory.createSipURI(TO_USER_NAME,
-			        LOOP_BACK_ADDRESS);
+			SipURI requestURI = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
+					LOOP_BACK_ADDRESS, addressFactory);
 			requestURI.setPort(TO_PORT);
 
-			ViaHeader viaHeader = headerFactory.createViaHeader(
-			        LOOP_BACK_ADDRESS, FROM_PORT, PROTOCOL, MAGIC_COOKIES
-			                + Integer.toHexString(remotetag.nextInt()));
+			ViaHeader viaHeader = MessageHandlerHelper.createViaHeader(
+					LOOP_BACK_ADDRESS, FROM_PORT, PROTOCOL, MAGIC_COOKIES
+							+ Integer.toHexString(remotetag.nextInt()),
+					headerFactory);
 
 			// add via headers
 			viaHeaders.add(viaHeader);
 
-			CSeqHeader cSeqHeader = headerFactory.createCSeqHeader((long) 1,
-			        Request.UPDATE);
+			CSeqHeader cSeqHeader = MessageHandlerHelper.createCSeqHeader(
+					(long) 1, Request.UPDATE, headerFactory);
 
 			// Create a new MaxForwardsHeader
-			MaxForwardsHeader maxForwards = headerFactory
-			        .createMaxForwardsHeader(70);
+			MaxForwardsHeader maxForwards = MessageHandlerHelper
+					.createMaxForwardsHeader(70, headerFactory);
 			CallIdHeader callid = headerFactory.createCallIdHeader(Integer
-			        .toHexString(remotetag.nextInt())
-			        + "@" + LOOP_BACK_ADDRESS);
-			request = messageFactoryImpl.createRequest(requestURI,
-			        Request.UPDATE, callid, cSeqHeader, fromHeader, toHeader,
-			        viaHeaders, maxForwards);
+					.toHexString(remotetag.nextInt())
+					+ AT + LOOP_BACK_ADDRESS);
+			LOGGER.info("Created Call-ID Header successflly");
+			request = MessageHandlerHelper.createRequest(requestURI,
+					Request.UPDATE, callid, cSeqHeader, fromHeader, toHeader,
+					viaHeaders, maxForwards, messageFactoryImpl);
 		}
+		LOGGER.info("Creation of UPDATE Request is ended");
 		return request;
 	}
 

@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 					License 											Details
+ * Package 						License 											Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 			NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 					The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -39,7 +40,16 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
+import static com.mitester.utility.ConfigurationProperties.CONFIG_INSTANCE;
+import static com.mitester.utility.UtilityConstants.OS_NAME;
+import static com.mitester.utility.UtilityConstants.LINUX_OS;
+import static com.mitester.utility.UtilityConstants.WINDOWS_OS;
+import static com.mitester.utility.UtilityConstants.MAC_OS;
+import static com.mitester.utility.UtilityConstants.SUN_OS;
+import static com.mitester.utility.UtilityConstants.SOLARIS_OS;
+import static com.mitester.utility.UtilityConstants.FILE_SEPARATOR;
+import static com.mitester.utility.UtilityConstants.SEMI_COLON_SEPARATOR;
 
 /**
  * This class consists of java native methods which are used to start and stop
@@ -52,37 +62,35 @@ public class ClientStarter {
 	private static final Logger LOGGER = MiTesterLog
 			.getLogger(ClientStarter.class.getName());
 
-	private static final String OS_NAME = System.getProperty("os.name");
-
 	private static final String LINE_SEPARATOR = System
 			.getProperty("line.separator");
-	private static final String FILE_SEPARATOR = System
-			.getProperty("file.separator");
-	private static final String SEMI_COLON_SEPARATOR = ";";
 
 	public ClientStarter() {
+
 	}
 
 	/**
 	 * This method is used to start the SUT
 	 * 
 	 * @param testApplicationPath
-	 *            is a String value specifies the path of the executable
-	 * @return is a boolean value represents true if the SUT started
-	 *         successfully
+	 *            represents the path of the executable
+	 * @return true when the SUT started successfully
+	 * @throws IOException
 	 */
 	public boolean startClient(String testApplicationPath)
-			throws NullPointerException, IllegalArgumentException,
-			InterruptedException, IOException {
+			throws IOException {
+
+		LOGGER.info("called startClient");
+
 		boolean isClientStart = false;
-		if ((OS_NAME.startsWith("Linux")) || (OS_NAME.startsWith("SunOS"))
-				|| (OS_NAME.startsWith("Solaris"))
-				|| (OS_NAME.startsWith("Mac"))) {
+		if ((OS_NAME.startsWith(LINUX_OS)) || (OS_NAME.startsWith(SUN_OS))
+				|| (OS_NAME.startsWith(SOLARIS_OS))
+				|| (OS_NAME.startsWith(MAC_OS))) {
 			FileWriter fiw = null;
 			BufferedWriter put = null;
 			int shFileindex = testApplicationPath.lastIndexOf(FILE_SEPARATOR);
 			String workspacePath = new java.io.File(".").getCanonicalPath();
-			String shPath = workspacePath + FILE_SEPARATOR + "testApp.sh";
+			String shPath = workspacePath + FILE_SEPARATOR + "runApp.sh";
 			fiw = new FileWriter(shPath);
 			put = new BufferedWriter(fiw);
 			put.write("cd " + testApplicationPath.substring(0, shFileindex));
@@ -98,7 +106,7 @@ public class ClientStarter {
 			Runtime.getRuntime().exec(cmd);
 			isClientStart = true;
 
-		} else if (OS_NAME.startsWith("Windows")) {
+		} else if (OS_NAME.startsWith(WINDOWS_OS)) {
 			FileWriter fiw = null;
 			BufferedWriter put = null;
 			String ClientPath = testApplicationPath;
@@ -112,6 +120,9 @@ public class ClientStarter {
 				batchPath = ClientPath.substring(0, batFileindex2) + "/"
 						+ "runExe.bat";
 			}
+
+			// set property
+			CONFIG_INSTANCE.setProperty("BATCH_FILE_PATH", batchPath);
 
 			fiw = new FileWriter(batchPath);
 			put = new BufferedWriter(fiw);
@@ -131,12 +142,12 @@ public class ClientStarter {
 				String cmd1[] = { "cmd", "/c", "start", "/B", "/D",
 						ClientPath.substring(0, batFileindex1 + 1),
 						"runExe.bat" };
-				Runtime.getRuntime().exec(cmd1).waitFor();
+				Runtime.getRuntime().exec(cmd1);
 			} else if (batFileindex2 >= 0) {
 				String cmd2[] = { "cmd", "/c", "start", "/B", "/D",
 						ClientPath.substring(0, batFileindex2 + 1),
 						"runExe.bat" };
-				Runtime.getRuntime().exec(cmd2).waitFor();
+				Runtime.getRuntime().exec(cmd2);
 			}
 			isClientStart = true;
 		}
@@ -148,42 +159,38 @@ public class ClientStarter {
 	 * This method is used to stop the SUT
 	 * 
 	 * @param testApplicationPath
-	 *            is a String value specifies the path of the executable
-	 * @param processDetails
-	 *            is a String object contains list of processes were running
-	 *            before start the SUT
-	 * @return is a boolean value represents true if the SUT started
-	 *         successfully
-	 * @throws NullPointerException
-	 * @throws IllegalArgumentException
-	 * @throws InterruptedException
+	 *            represents the path of the executable
+	 * @param processBefStart
+	 *            consists of list of running processes before starting SUT
+	 * @param processAfStart
+	 *            consists of list of running processes after starting SUT
+	 * @return true when SUT stopped successfully
 	 * @throws IOException
 	 */
 	public boolean stopClient(String testApplicationPath,
 			String processBefStart, String processAfStart)
-			throws NullPointerException, IllegalArgumentException,
-			InterruptedException, IOException {
+			throws IOException {
+
 		boolean isClientStop = false;
-		if ((OS_NAME.startsWith("Linux")) || (OS_NAME.startsWith("SunOS"))
-				|| (OS_NAME.startsWith("Solaris"))
-				|| (OS_NAME.startsWith("Mac"))) {
-			String shPath = new java.io.File(".").getCanonicalPath()
-					+ FILE_SEPARATOR + "testApp.sh";
 
-			if (TestUtility.isFileExist(shPath)) {
-				new File(shPath).delete();
+		// remove the shell
+		TestUtility.removeShell();
 
-			}
+		if ((OS_NAME.startsWith(LINUX_OS)) || (OS_NAME.startsWith(SUN_OS))
+				|| (OS_NAME.startsWith(SOLARIS_OS))
+				|| (OS_NAME.startsWith(MAC_OS))) {
+
 			String processes[] = processAfStart.split(SEMI_COLON_SEPARATOR);
-			LOGGER.info("no of processes " + processes.length);
+//			LOGGER.info("no of processes " + processes.length);
 			for (int i = 0; i < processes.length; i++) {
 				Runtime.getRuntime().exec("kill -9 " + processes[i]);
 			}
 			isClientStop = true;
 
 		} else if (OS_NAME.startsWith("Windows")) {
+
 			String processes[] = processAfStart.split(SEMI_COLON_SEPARATOR);
-			LOGGER.info("no of processes " + processes.length);
+//			LOGGER.info("no of processes " + processes.length);
 			for (int i = 0; i < processes.length; i++) {
 				Runtime.getRuntime().exec("tskill " + processes[i]);
 			}
@@ -193,15 +200,16 @@ public class ClientStarter {
 	}
 
 	/**
-	 * This method return the Win32 Processes currently running on windows
+	 * This method returns the currently running processes
 	 * 
-	 * @return is a String object represents list of processes
+	 * @return list of currently running processes
 	 * @throws IOException
 	 */
 	public String getProcessInfo() throws IOException {
 		String processDetails = null;
 
-		if ((OS_NAME.startsWith("SunOS")) || (OS_NAME.startsWith("Solaris"))) {
+		if ((OS_NAME.startsWith(SUN_OS)) || (OS_NAME.startsWith(SOLARIS_OS))
+				|| (OS_NAME.startsWith(LINUX_OS))) {
 
 			StringBuilder processIds = new StringBuilder();
 
@@ -217,7 +225,7 @@ public class ClientStarter {
 			processDetails = processIds.toString();
 		}
 
-		else if ((OS_NAME.startsWith("Linux")) || (OS_NAME.startsWith("Mac"))) {
+		else if ((OS_NAME.startsWith(MAC_OS))) {
 
 			StringBuilder tempbuf = new StringBuilder();
 
@@ -244,7 +252,7 @@ public class ClientStarter {
 
 				line = line.trim();
 
-				if (line.startsWith("PID")) {
+				if (line.startsWith("PID") || (line.indexOf("ps x") > 0)) {
 					continue;
 				} else {
 					processIds.append(line.substring(0, line.indexOf(" ")));
@@ -255,7 +263,7 @@ public class ClientStarter {
 
 			processDetails = processIds.toString();
 
-		} else if (OS_NAME.startsWith("Windows")) {
+		} else if (OS_NAME.startsWith(WINDOWS_OS)) {
 
 			String line;
 
@@ -268,6 +276,12 @@ public class ClientStarter {
 					.getInputStream()));
 
 			while ((line = input.readLine()) != null) {
+
+//				LOGGER.info(line);
+
+				if (line.startsWith("tasklist.exe"))
+					continue;
+
 				int iConsole = line.trim().indexOf(" Console");
 				if (iConsole >= 0) {
 					String[] consoleSplit = line.trim().split(" Console");

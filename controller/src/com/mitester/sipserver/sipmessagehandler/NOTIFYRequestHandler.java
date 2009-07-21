@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 										Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -67,7 +68,10 @@ import javax.sip.header.ToHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 
+import org.apache.log4j.Logger;
+
 import com.mitester.sipserver.ProcessSIPMessage;
+import com.mitester.utility.MiTesterLog;
 
 /**
  * A method is used to inform subscribers of changes in state to which the
@@ -77,6 +81,10 @@ import com.mitester.sipserver.ProcessSIPMessage;
  * 
  */
 public class NOTIFYRequestHandler {
+
+	private static final Logger LOGGER = MiTesterLog
+			.getLogger(NOTIFYRequestHandler.class.getName());
+
 	/**
 	 * Generating NOTIFY Request
 	 * 
@@ -90,6 +98,7 @@ public class NOTIFYRequestHandler {
 	public static Request createNOTIFYRequest(SIPMessage sipmsg, String dialog)
 			throws NullPointerException, java.text.ParseException,
 			InvalidArgumentException, SipException {
+		LOGGER.info("Generation of NOTIFY Request is started");
 		MessageFactoryImpl messageFactoryImpl = new MessageFactoryImpl();
 		Request request;
 		SipFactory factory = SipFactory.getInstance();
@@ -99,13 +108,13 @@ public class NOTIFYRequestHandler {
 		Random remotetag = new Random();
 		if (sipmsg != null) {
 			ViaList via = sipmsg.getViaHeaders();
-			SipURI requestURI = addressFactory
-					.createSipURI("user", "127.0.0.1");
-			MaxForwardsHeader maxfwd = headerFactory
-					.createMaxForwardsHeader(70);
+			
+			SipURI requestURI = MessageHandlerHelper.createSIPURI("user", "127.0.0.1", addressFactory);
+			MaxForwardsHeader maxfwd = MessageHandlerHelper.createMaxForwardsHeader(70, headerFactory);
 			long invitecseq = sipmsg.getCSeq().getSeqNumber();
-			CSeqHeader cseq = headerFactory.createCSeqHeader(invitecseq,
-					Request.NOTIFY);
+			CSeqHeader cseq = MessageHandlerHelper.createCSeqHeader(invitecseq,
+					Request.NOTIFY, headerFactory);
+
 			CallIdHeader callid;
 			FromHeader fromHeader;
 			ToHeader toHeader;
@@ -120,7 +129,7 @@ public class NOTIFYRequestHandler {
 				fromHeader = sipmsg.getFrom();
 				toHeader = sipmsg.getTo();
 			}
-
+			
 			request = messageFactoryImpl.createRequest(requestURI,
 					Request.NOTIFY, callid, cseq, fromHeader, toHeader, via,
 					maxfwd);
@@ -178,6 +187,7 @@ public class NOTIFYRequestHandler {
 					Request.NOTIFY, callid, cSeqHeader, fromHeader, toHeader,
 					viaHeaders, maxForwards, messageFactoryImpl);
 		}
+		LOGGER.info("Generation of NOTIFY Request is ended");
 		return request;
 	}
 

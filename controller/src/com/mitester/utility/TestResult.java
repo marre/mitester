@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 					License 											Details
+ * Package 						License 											Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 			NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 					The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -36,13 +37,15 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 
 /**
- * This class updates and print the test results.
+ * This class updates and prints the test results.
  * 
  */
 
 public class TestResult {
 
 	private static final String TEST_PASS = "PASS";
+
+	private static final String LINE_SEP = System.getProperty("line.separator");
 
 	private static final String EXECUTION_START_TIME = "EXECUTION_START_TIME";
 
@@ -52,92 +55,71 @@ public class TestResult {
 
 	private static final String TEST_FAIL = "FAIL";
 
-	private static final String LINE_SEPARATOR = System
-			.getProperty("line.separator");
-
 	private static final StringBuilder RESULT_BUFFER = new StringBuilder();
 
-	private static int TEST_ID_LENGTH = 35;
+	private static String failReason = null;
 
+	private static boolean isReasonSet = false;
+
+	private static String testID = null;
+	
 	private TestResult() {
 
 	}
 
 	/**
-	 * this method called end of every test execution to update the test result
+	 * this method called at the end of every test execution to update the test
+	 * result
 	 * 
 	 * @param testID
-	 *            String object represents test case id
+	 *            represents test case id
 	 * @param testResult
-	 *            boolean represents the test result
+	 *            represents the test result
 	 */
 
 	public static void updateResult(String testID, boolean testResult) {
 
-		String resultStr = null;
-		int len = 0;
-		int testIdLen = testID.length();
+		if (testResult)
+			RESULT_BUFFER.append(formatResult(TEST_PASS, testID) + LINE_SEP);
+		else
+			RESULT_BUFFER.append(formatResult(TEST_FAIL, testID, failReason)
+					+ LINE_SEP);
 
-		if (TEST_ID_LENGTH > testIdLen) {
-
-			len = TEST_ID_LENGTH - testIdLen;
-		} else {
-
-			TEST_ID_LENGTH = testIdLen + 10;
-
-			len = TEST_ID_LENGTH - testIdLen;
-		}
-
-		if (testResult) {
-
-			resultStr = String.format("%" + len + "s", TEST_PASS);
-
-		} else {
-
-			resultStr = String.format("%" + len + "s", TEST_FAIL);
-
-		}
-
-		RESULT_BUFFER.append(testID + resultStr
-				+ System.getProperty("line.separator"));
-
+		isReasonSet = false;
 	}
 
 	/**
 	 * prints the test result
 	 * 
 	 * @param startTime
-	 *            is a String object represents start time of test execution
+	 *            represents start time of test execution
 	 * @param endTime
-	 *            is a String object represents end time of test execution
+	 *            represents end time of test execution
 	 */
 	public static void printResult(String startTime, String endTime) {
 
 		String fmtStr = null;
-
-		TestUtility
-				.printMessage(LINE_SEPARATOR
-						+ "************************************************************************");
-		TestUtility.printMessage("Consolidated Test Results");
-		TestUtility
-				.printMessage("************************************************************************");
-		TestUtility.printMessage(RESULT_BUFFER.toString());
 
 		try {
 			BufferedWriter buffferedWriter = new BufferedWriter(new FileWriter(
 					"TestResult.txt", true));
 
 			fmtStr = String.format("%4s", FIELD_SEPARATOR);
-
+			
+			buffferedWriter.write(LINE_SEP);
 			buffferedWriter.write(EXECUTION_START_TIME + fmtStr + " "
 					+ startTime);
-			buffferedWriter.write(LINE_SEPARATOR);
+			buffferedWriter.write(LINE_SEP);
+			buffferedWriter
+					.write("*********************************************");
+			buffferedWriter.write(LINE_SEP);
 			buffferedWriter.write(RESULT_BUFFER.toString());
 
 			fmtStr = String.format("%6s", FIELD_SEPARATOR);
 
 			buffferedWriter.write(EXECUTION_END_TIME + fmtStr + " " + endTime);
-			buffferedWriter.write(LINE_SEPARATOR);
+			buffferedWriter.write(LINE_SEP);
+			buffferedWriter.write(LINE_SEP);
 			buffferedWriter.flush();
 			buffferedWriter.close();
 
@@ -145,4 +127,111 @@ public class TestResult {
 
 		}
 	}
+
+	/**
+	 * it formats the test result
+	 * 
+	 * @param testID
+	 *            represents test case id
+	 * @param testResult
+	 *            represents the test result
+	 */
+
+	public static String formatResult(String... resultMessage) {
+
+		String resultStr = null;
+
+		if (resultMessage[0].equals(TEST_PASS)) {
+
+			String fmtStr = null;
+
+			fmtStr = String.format("%" + 12 + "s", ": ");
+
+			resultStr = "TC ID" + fmtStr + resultMessage[1] + LINE_SEP;
+
+			fmtStr = String.format("%" + 6 + "s", ": ");
+
+			resultStr = resultStr + "TEST RESULT" + fmtStr + TEST_PASS
+					+ LINE_SEP;
+
+			resultStr = resultStr
+					+ "*********************************************";
+
+		} else {
+
+			String fmtStr = null;
+
+			fmtStr = String.format("%" + 12 + "s", ": ");
+
+			resultStr = "TC ID" + fmtStr + resultMessage[1] + LINE_SEP;
+
+			fmtStr = String.format("%" + 6 + "s", ": ");
+
+			resultStr = resultStr + "TEST RESULT" + fmtStr + TEST_FAIL
+					+ LINE_SEP;
+
+			fmtStr = String.format("%" + 5 + "s", ": ");
+
+			resultStr = resultStr + "ERROR STRING" + fmtStr + resultMessage[2]
+					+ LINE_SEP;
+
+			resultStr = resultStr
+					+ "*********************************************";
+
+		}
+
+		return resultStr;
+
+	}
+
+	/**
+	 * it sets the fail reason
+	 * 
+	 * @param reason
+	 *            holds the reason for fail
+	 */
+
+	public static void setFailReason(String reason) {
+
+		if (!isReasonSet) {
+
+			failReason = reason;
+
+			if (failReason != null)
+				isReasonSet = true;
+		}
+
+	}
+
+	/**
+	 * It returns the fail reason
+	 * 
+	 * @return fail reason string
+	 */
+	public static String getFailReason() {
+		return failReason;
+	}
+
+	/**
+	 * set TestID
+	 * 
+	 * @param testId
+	 *            test case ID
+	 */
+	public static void setTestID(String testId) {
+		testID = testId;
+
+	}
+
+	/**
+	 * get TestID
+	 * 
+	 * @return testID
+	 */
+	public static String getTestID() {
+		return testID;
+
+	}
+	
+	
 }

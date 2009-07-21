@@ -1,5 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+
+ <xs:simpleType name="recvEnumType">
+  <xs:restriction base="xs:NCName">
+   <xs:enumeration value="req"/>
+   <xs:enumeration value="res"/>
+   <xs:enumeration value="media"/>
+  </xs:restriction>
+ </xs:simpleType>
+ <xs:simpleType name="sendEnumType">
+  <xs:restriction base="xs:NCName">
+   <xs:enumeration value="req"/>
+   <xs:enumeration value="res"/>
+   <xs:enumeration value="media"/>
+  </xs:restriction>
+ </xs:simpleType>
+
   <xs:element name="TEST_FLOW">
     <xs:complexType>
       <xs:sequence>
@@ -34,12 +50,20 @@
           <xs:element minOccurs="0" ref="DEL_CRLF"/>
           <xs:element minOccurs="0" ref="DEL_LF"/>
           <xs:element minOccurs="0" ref="DUP_MSG"/>
+          <xs:element minOccurs="0" ref="MEDIA"/>
          </xs:all>
-      <xs:attribute name="RECV" type="xs:NCName"/>
-      <xs:attribute name="SEND" type="xs:NCName"/>
+      <xs:attribute name="RECV" type="recvEnumType"/>
+      <xs:attribute name="SEND" type="sendEnumType"/>
       <xs:attribute name="count" type="xs:integer"/>
       <xs:attribute name="dialog" type="xs:NMTOKEN"/>
       <xs:attribute name="value" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="MEDIA">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="file"/>
+      </xs:sequence>
     </xs:complexType>
   </xs:element>
   <xs:element name="ADD_CRCR">
@@ -341,7 +365,7 @@
   </xs:element>
   <xs:element name="file">
     <xs:complexType>
-      <xs:attribute name="source" use="required" type="xs:NCName"/>
+      <xs:attribute name="source" use="required"/>
     </xs:complexType>
   </xs:element>
 </xs:schema>

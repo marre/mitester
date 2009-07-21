@@ -1,7 +1,7 @@
 /*
  * Project: mitesterforsip
  * Author: Mobax
- * Filename: DuplicateHeaderHandler.java
+ * Filename: UdpCommn.java
  * Copyright (C) 2008 - 2009  Mobax Networks Private Limited
  * miTester for SIP – License Information
  * --------------------------------------------------
@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										    Details
+ * Package 						License 											Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -53,7 +54,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.List;
 import java.util.StringTokenizer;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 import javax.sip.InvalidArgumentException;
 import javax.sip.SipException;

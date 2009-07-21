@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 					License 											Details
+ * Package 						License 											Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 			NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 					The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -35,6 +36,12 @@ package com.mitester.utility;
 import java.io.*;
 import java.util.Properties;
 
+/**
+ * 
+ * ConfigurationProperties is an enum which is used for retrieving and setting
+ * miTester properties
+ * 
+ */
 
 public enum ConfigurationProperties {
 
@@ -42,21 +49,63 @@ public enum ConfigurationProperties {
 
 	private Properties configFile = new Properties();
 
+	private boolean isLoaded = false;
+
 	private ConfigurationProperties() {
 		try {
 			loadConfigFile();
+			isLoaded = true;
 		} catch (IOException ex) {
+			TestUtility.printMessage("NORMAL",ex.getMessage());
 			TestUtility.printError("error in reading properties file", ex);
+		} catch (Exception ex) {
+			TestUtility.printMessage("NORMAL",ex.getMessage());
+			TestUtility.printError("error in reading properties file", ex);
+
 		}
 	}
+
+	/**
+	 * return the miTester property value
+	 * 
+	 * @param key
+	 *            specifies the name of the property
+	 * @return the property value
+	 */
 
 	public String getValue(String key) {
 		return configFile.getProperty(key);
 	}
 
+	/**
+	 * This method is used to set the property
+	 * 
+	 * @param key
+	 *            specifies the name of the property
+	 * @param value
+	 *            specifies the value of the property
+	 */
+	public void setProperty(String key, String value) {
+		configFile.setProperty(key, value);
+	}
+
+	/**
+	 * This method is used to load the miTester properties
+	 * 
+	 * @throws IOException
+	 */
+
 	private void loadConfigFile() throws IOException {
 		configFile.load(new FileInputStream("miTester.properties"));
 	}
+
+	/**
+	 * this method is used to check existence of key
+	 * 
+	 * @param key
+	 *            specifies the name of the property
+	 * @return true if key exists
+	 */
 
 	public boolean isKeyExists(String key) {
 		try {
@@ -65,5 +114,9 @@ public enum ConfigurationProperties {
 			TestUtility.printError("error in reading properties file", ex);
 			return false;
 		}
+	}
+
+	public boolean isPropertyFileLoaded() {
+        return isLoaded;
 	}
 }

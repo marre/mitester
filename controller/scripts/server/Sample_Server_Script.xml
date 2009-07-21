@@ -228,7 +228,7 @@
 
     <TEST TYPE = 'Normal' TEST-ID = 'SS-6' 
                DESCRIPTION = ' SUT sends REGISTER request,
-                                           miTester sends 200 OK REGISTER response with user -specified value in Max-Forwards header' >
+                                           miTester sends 200 OK REGISTER response with user specified value in Max-Forwards header' >
 
         <ACTION RECV='req' value='REGISTER'>
         </ACTION>
@@ -480,10 +480,141 @@
 
     </TEST>
 
+    <TEST TYPE = 'Normal' TEST-ID = 'SS-17'
+               DESCRIPTION = ' Successful Registration,
+                                           Session Establishment by Server Sending INVITE,
+                                           sending and receiving media packets,
+                                           Session Termination by Client Sending BYE,
+                                           Successful De-registration' >
 
-    <TEST TYPE = 'Normal' TEST-ID = 'SS-17' 
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+        <ACTION SEND='req' value='INVITE' >
+            <ADD_MSG>
+                <CONTENT>
+                    <SDP_BODY>
+                        <header name='content-type' value='application/sdp' />
+                        <sdp name='v' value='0' />
+                        <sdp name='o' value='sip:UserA@127.0.0.1 234435 234435 IN IP4 200.201.202.170' />
+                        <sdp name='s' value='peer Session SDP' />
+                        <sdp name='c' value='IN IP4 200.201.202.170' />
+                        <sdp name='t' value='0 0' />
+                        <sdp name='m' value='audio 8000 RTP/AVP 0 8 97 3 5 4' />
+                        <sdp name='a' value='rtpmap:4 G723/8000' />
+                        <sdp name='a' value='fmtp:4 annexa=no;bitrate=6.3' />
+                        <sdp name='m' value='video 5002 RTP/AVP 99 34 26 31' />
+                        <sdp name='a' value='rtpmap:99 H264/90000' />
+                        <sdp name='a' value='maxptime:100' />
+                        <sdp name='a' value='fmtp:99 packetization-mode=1' />
+                        <sdp name='a' value='recvonly' />
+                    </SDP_BODY>
+                </CONTENT>
+            </ADD_MSG> 
+        </ACTION>		
+        <ACTION RECV='res' value='200_INVITE'>
+        </ACTION>
+        <ACTION SEND='req' value='ACK' >
+        </ACTION>
+        <ACTION RECV='media' value='RTP' >
+	</ACTION>
+        <ACTION RECV='media' value='RTCP_SR' >
+	</ACTION>
+        <ACTION SEND='media' value='RTP' >
+ 	<MEDIA>  
+  		<file source='media/RTP.txt' />
+ 	</MEDIA>
+	</ACTION>
+        <ACTION SEND='media' value='RTCP' >
+ 		<MEDIA>  
+  			<file source='media/RTCP_SR.txt' />
+ 		</MEDIA>
+	</ACTION>
+        <ACTION SEND='media' value='RTCP' >
+ 		<MEDIA>  
+  			<file source='media/RTCP_SR.txt' />
+ 		</MEDIA>
+	</ACTION>
+        <ACTION SEND='media' value='RTCP' >
+ 		<MEDIA>  
+  			<file source='media/RTCP_SR.txt' />
+ 		</MEDIA>
+	</ACTION>
+        <ACTION SEND='media' value='RTCP' >
+ 		<MEDIA>  
+  			<file source='media/RTCP_SR.txt' />
+ 		</MEDIA>
+	</ACTION>
+        <ACTION SEND='media' value='RTCP' >
+ 		<MEDIA>  
+  			<file source='media/RTCP_SR.txt' />
+ 		</MEDIA>
+	</ACTION>
+        <ACTION SEND='media' value='RTCP' >
+ 		<MEDIA>  
+  			<file source='media/RTCP_SR.txt' />
+ 		</MEDIA>
+	</ACTION>
+        <ACTION SEND='media' value='RTCP' >
+ 		<MEDIA>  
+  			<file source='media/RTCP_SR.txt' />
+ 		</MEDIA>
+	</ACTION>
+        <ACTION SEND='media' value='RTCP' >
+ 		<MEDIA>  
+  			<file source='media/RTCP_SR.txt' />
+ 		</MEDIA>
+	</ACTION>
+        <ACTION SEND='media' value='RTCP' >
+ 		<MEDIA>  
+  			<file source='media/RTCP_SR.txt' />
+ 		</MEDIA>
+	</ACTION>
+        <ACTION SEND='media' value='RTCP' >
+ 		<MEDIA>  
+  			<file source='media/RTCP_SR.txt' />
+ 		</MEDIA>
+	</ACTION>
+        <ACTION SEND='media' value='RTCP' >
+ 		<MEDIA>  
+  			<file source='media/RTCP_SR.txt' />
+ 		</MEDIA>
+	</ACTION>
+        <ACTION SEND='media' value='RTCP' >
+ 		<MEDIA>  
+  			<file source='media/RTCP_SR.txt' />
+ 		</MEDIA>
+	</ACTION>
+        <ACTION SEND='media' value='RTCP_SDES' >
+ 		<MEDIA>  
+  			<file source='media/RTCP_SDES_wronglength.txt' />
+ 		</MEDIA>
+	</ACTION>
+        <ACTION SEND='media' value='RTCP_BYE' >
+ 		<MEDIA>  
+  			<file source='media/RTCP_BYE.txt' />
+ 		</MEDIA>
+	</ACTION>
+        <ACTION SEND='media' value='RTCP_RR' >
+ 		<MEDIA>  
+  			<file source='media/RTCP_RR.txt' />
+ 		</MEDIA>
+	</ACTION>
+        <ACTION RECV='req' value='BYE' >
+        </ACTION>
+        <ACTION SEND='res' value='200_BYE'>
+        </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+
+    </TEST>
+
+    <TEST TYPE = 'Normal' TEST-ID = 'SS-18' 
                DESCRIPTION = ' SUT sends REGISTER request,
-                                           miTester sends 200 OK REGISTER response with Accept-Language header as custom header' >
+                               		 miTester sends 200 OK REGISTER response with Accept-Language header as custom header ' >
 
         <ACTION RECV='req' value='REGISTER'>
         </ACTION>
@@ -493,6 +624,63 @@
                     <header name='accept-language' value='fr;q=0.1, en;q=0.3' />
                 </HEADERS>
             </ADD_MSG>
+        </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+
+    </TEST>
+
+ <TEST TYPE = 'Abnormal' TEST-ID = 'SS-19' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                               	         miTester sends 911 OK REGISTER response' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='911_REGISTER' >
+           </ACTION>
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+        </ACTION>
+
+    </TEST>
+
+<TEST TYPE = 'Abnormal' TEST-ID = 'SS-20' 
+               DESCRIPTION = ' SUT sends REGISTER request,
+                               		 miTester sends 200 OK REGISTER response,
+                                         miTester sends unknown request with SDP body' >
+
+        <ACTION RECV='req' value='REGISTER'>
+        </ACTION>
+        <ACTION SEND='res' value='200_REGISTER' >
+           </ACTION>
+        <ACTION SEND='req' value='INITE' >
+            <ADD_MSG>
+                <CONTENT>
+                    <SDP_BODY>
+                        <header name='content-type' value='application/sdp' />
+                        <sdp name='v' value='0' />
+                        <sdp name='o' value='sip:UserA@127.0.0.1 234435 234435 IN IP4 200.201.202.156' />
+                        <sdp name='s' value='peer Session SDP' />
+                        <sdp name='c' value='IN IP4 200.201.202.156' />
+                        <sdp name='t' value='0 0' />
+                        <sdp name='m' value='audio 8000 RTP/AVP 0 8 97 3 5 4' />
+                        <sdp name='a' value='rtpmap:4 G723/8000' />
+                        <sdp name='a' value='fmtp:4 annexa=no;bitrate=6.3' />
+                        <sdp name='m' value='video 5002 RTP/AVP 99 34 26 31' />
+                        <sdp name='a' value='rtpmap:99 H264/90000' />
+                        <sdp name='a' value='maxptime:100' />
+                        <sdp name='a' value='fmtp:99 packetization-mode=1' />
+                        <sdp name='a' value='recvonly' />
+                    </SDP_BODY>
+                </CONTENT>
+            </ADD_MSG> 
+        </ACTION>		
+        <ACTION RECV='res' value='200_INVITE'>
+        </ACTION>
+        <ACTION SEND='req' value='ACsK' >
         </ACTION>
         <ACTION RECV='req' value='REGISTER'>
         </ACTION>

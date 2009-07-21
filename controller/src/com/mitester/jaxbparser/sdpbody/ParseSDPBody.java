@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 					License 											Details
+ * Package 						License 											Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 			NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 					The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -36,7 +37,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.List;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 import javax.xml.XMLConstants;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -47,6 +48,7 @@ import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import com.mitester.utility.MiTesterLog;
 import com.mitester.utility.TestUtility;
+import static com.mitester.utility.UtilityConstants.NORMAL;
 
 /**
  * It handles JAXB Parsing of the sdp body which is specified in the server
@@ -83,18 +85,22 @@ public class ParseSDPBody {
 			u.setEventHandler(new VaHandeler());
 
 		} catch (Exception ex) {
-			// TODO Auto-com.mitester.jaxbparser.client catch block
-			TestUtility.printError("Error at unmarshalling SDP Body ", ex);
+			// com.mitester.jaxbparser.sdpbody catch block
+			TestUtility.printMessage(NORMAL, "Error at unmarshalling SDP Body");
+			LOGGER.error("Error at unmarshalling SDP Body ", ex);
 		}
 	}
 
 	static class VaHandeler implements ValidationEventHandler {
 
 		public boolean handleEvent(ValidationEvent event) {
-			TestUtility.printMessage("Column Number"
-					+ event.getLocator().getColumnNumber());
-			TestUtility.printMessage("Line Number"
+			TestUtility.printMessage(NORMAL, "Line Number	:	"
 					+ event.getLocator().getLineNumber());
+			LOGGER.error("Line Number	:	" + event.getLocator().getLineNumber());
+			TestUtility.printMessage(NORMAL, "Column Number	:	"
+					+ event.getLocator().getColumnNumber());
+			LOGGER.error("Column Number	:	"
+					+ event.getLocator().getColumnNumber());
 			return false;
 		}
 	}
@@ -113,7 +119,7 @@ public class ParseSDPBody {
 	public List<Sdp> ParseSDPBodyFile(String sdpBodyFile) throws IOException,
 			NullPointerException, JAXBException {
 
-		LOGGER.info("Entered into SDP Bosy Parsing");
+		LOGGER.info("Entered into SDP Body Parsing");
 
 		try {
 			Object sdpBody = u.unmarshal(new FileInputStream(sdpBodyFile));
@@ -122,8 +128,8 @@ public class ParseSDPBody {
 			return (sdp.getSdp());
 
 		} catch (JAXBException ex) {
-			TestUtility.printError("Parsing Error", ex);
-			LOGGER.info("Parsing Error	:	" + ex);
+			TestUtility.printMessage(NORMAL, "Parsing Error in SDP Body");
+			LOGGER.error("Parsing Error in SDP Body" + ex);
 			throw ex;
 		}
 	}

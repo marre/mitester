@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 										Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -67,15 +68,19 @@ import javax.sip.header.ToHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 
+import org.apache.log4j.Logger;
+
 import com.mitester.sipserver.ProcessSIPMessage;
+import com.mitester.utility.MiTesterLog;
 
 /**
  * A method to carry application level information along the SIP signaling path.
  * 
- * 
- * 
  */
 public class INFORequestHandler {
+	private static final Logger LOGGER = MiTesterLog
+			.getLogger(INFORequestHandler.class.getName());
+
 	/**
 	 * Generating INFO Request
 	 * 
@@ -87,8 +92,9 @@ public class INFORequestHandler {
 	 * @throws SipException
 	 */
 	public static Request createINFORequest(SIPMessage sipmsg, String dialog)
-	        throws NullPointerException, java.text.ParseException,
-	        InvalidArgumentException, SipException {
+			throws NullPointerException, java.text.ParseException,
+			InvalidArgumentException, SipException {
+		LOGGER.info("Generation of INFO Request is started");
 		MessageFactoryImpl messageFactoryImpl = new MessageFactoryImpl();
 		Request request;
 		SipFactory factory = SipFactory.getInstance();
@@ -100,91 +106,92 @@ public class INFORequestHandler {
 
 			ViaHeader via = (ViaHeader) sipmsg.getHeader(ViaHeader.NAME);
 			viaHeaders.add(via);
-
+			
 			SipURI requestURI = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
-			        LOOP_BACK_ADDRESS, addressFactory);
+					LOOP_BACK_ADDRESS, addressFactory);
 
 			// Create a new MaxForwardsHeader
 			MaxForwardsHeader maxForwards = MessageHandlerHelper
-			        .createMaxForwardsHeader(MAXFORWARDS, headerFactory);
+					.createMaxForwardsHeader(MAXFORWARDS, headerFactory);
 
 			long invitecseq = sipmsg.getCSeq().getSeqNumber();
 			CSeqHeader cseq = MessageHandlerHelper.createCSeqHeader(invitecseq,
-			        Request.INFO, headerFactory);
+					Request.INFO, headerFactory);
 			CallIdHeader callid;
 			FromHeader fromHeader;
 			ToHeader toHeader;
-			if(dialog == null) {
+			if (dialog == null) {
 				callid = sipmsg.getCallId();
 				fromHeader = sipmsg.getFrom();
 				toHeader = sipmsg.getTo();
 			} else {
-				SIPMessage sipMsg = ProcessSIPMessage.getSIPMessage(dialog, Request.INFO,
-				        SERVER_REQUEST);
+				SIPMessage sipMsg = ProcessSIPMessage.getSIPMessage(dialog,
+						Request.INFO, SERVER_REQUEST);
 				callid = sipMsg.getCallId();
-				fromHeader= sipMsg.getFrom();
+				fromHeader = sipMsg.getFrom();
 				toHeader = sipMsg.getTo();
 			}
-			request = MessageHandlerHelper
-			        .createRequest(requestURI, Request.INFO,
-			        		callid, cseq, fromHeader, toHeader, viaHeaders, maxForwards,
-			                messageFactoryImpl);
+			
+			request = MessageHandlerHelper.createRequest(requestURI,
+					Request.INFO, callid, cseq, fromHeader, toHeader,
+					viaHeaders, maxForwards, messageFactoryImpl);
 
 			request.setMethod(Request.INFO);
 		} else {
 
 			SipURI fromAddress = MessageHandlerHelper.createSIPURI(
-			        FROM_USER_NAME, LOOP_BACK_ADDRESS, addressFactory);
+					FROM_USER_NAME, LOOP_BACK_ADDRESS, addressFactory);
 			fromAddress.setPort(FROM_PORT);
 			Address fromNameAddress = MessageHandlerHelper.createAddress(
-			        fromAddress, addressFactory);
+					fromAddress, addressFactory);
 			fromNameAddress.setDisplayName(FROM_DISPLAY_NAME);
 			// create from header
 			FromHeader fromHeader = MessageHandlerHelper.createFromHeader(
-			        fromNameAddress, Integer.toHexString(remotetag.nextInt()),
-			        headerFactory);
+					fromNameAddress, Integer.toHexString(remotetag.nextInt()),
+					headerFactory);
 
 			SipURI toAddress = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
-			        LOOP_BACK_ADDRESS, addressFactory);
+					LOOP_BACK_ADDRESS, addressFactory);
 			toAddress.setPort(TO_PORT);
 			Address toNameAddress = MessageHandlerHelper.createAddress(
-			        toAddress, addressFactory);
+					toAddress, addressFactory);
 			toNameAddress.setDisplayName(TO_DISPLAY_NAME);
 			// create to Header
 			ToHeader toHeader = MessageHandlerHelper.createToHeader(
-			        toNameAddress, null, headerFactory);
+					toNameAddress, null, headerFactory);
 
 			SipURI requestURI = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
-			        LOOP_BACK_ADDRESS, addressFactory);
+					LOOP_BACK_ADDRESS, addressFactory);
 			requestURI.setPort(TO_PORT);
 
 			// create Vi aheader
 			ViaHeader viaHeader = MessageHandlerHelper.createViaHeader(
-			        LOOP_BACK_ADDRESS, FROM_PORT, PROTOCOL, MAGIC_COOKIES
-			                + Integer.toHexString(remotetag.nextInt()),
-			        headerFactory);
+					LOOP_BACK_ADDRESS, FROM_PORT, PROTOCOL, MAGIC_COOKIES
+							+ Integer.toHexString(remotetag.nextInt()),
+					headerFactory);
 
 			// add via headers
 			viaHeaders.add(viaHeader);
 
 			CSeqHeader cSeqHeader = MessageHandlerHelper.createCSeqHeader(1,
-			        Request.INFO, headerFactory);
+					Request.INFO, headerFactory);
 
 			// Create a new MaxForwardsHeader
 			MaxForwardsHeader maxForwards = MessageHandlerHelper
-			        .createMaxForwardsHeader(MAXFORWARDS, headerFactory);
+					.createMaxForwardsHeader(MAXFORWARDS, headerFactory);
 
 			// create call-ID
 			CallIdHeader callid = MessageHandlerHelper.createCallIdHeader(
-			        Integer.toHexString(remotetag.nextInt()),
-			        LOOP_BACK_ADDRESS, headerFactory);
+					Integer.toHexString(remotetag.nextInt()),
+					LOOP_BACK_ADDRESS, headerFactory);
 
 			// create request
 			request = MessageHandlerHelper.createRequest(requestURI,
-			        Request.INFO, callid, cSeqHeader, fromHeader, toHeader,
-			        viaHeaders, maxForwards, messageFactoryImpl);
+					Request.INFO, callid, cSeqHeader, fromHeader, toHeader,
+					viaHeaders, maxForwards, messageFactoryImpl);
 
 		}
+		LOGGER.info("Generation of INFO Request is ended");
 		return request;
 	}
 

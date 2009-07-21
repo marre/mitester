@@ -1,0 +1,11 @@
+<VALIDATION>
+	<MANDATORY>
+		<method name='req' value='REGISTER'>
+                        <header name='User-Agent'/>
+		</method>
+		<method name='res' value='200_INVITE'>
+                        <header name='Content-Language'/>
+		</method>
+	</MANDATORY>
+</VALIDATION>
+

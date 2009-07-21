@@ -1,7 +1,7 @@
 /*
  * Project: mitesterforsip
  * Author: Mobax
- * Filename: SipParser.java
+ * Filename: UdpCommn.java
  * Copyright (C) 2008 - 2009  Mobax Networks Private Limited
  * miTester for SIP – License Information
  * --------------------------------------------------
@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 											Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -38,9 +39,10 @@ import gov.nist.javax.sip.message.SIPMessage;
 import gov.nist.javax.sip.parser.StringMsgParser;
 
 import java.text.ParseException;
-import java.util.logging.Logger;
 
 import javax.sip.SipException;
+
+import org.apache.log4j.Logger;
 
 import com.mitester.utility.MiTesterLog;
 
@@ -55,7 +57,7 @@ public class SipParser {
 	private static StringMsgParser sipMsgParser = new StringMsgParser();
 
 	private static final Logger LOGGER = MiTesterLog.getLogger(SipParser.class
-	        .getName());
+			.getName());
 
 	public SipParser() {
 		sipMsgParser = new StringMsgParser();
@@ -73,12 +75,12 @@ public class SipParser {
 	 * @throws NullPointerException
 	 */
 	public static SIPMessage parseSipMessage(String msgBuf)
-	        throws ParseException, SipException, NullPointerException {
-		
-		LOGGER.info("Parsing the SIP message");
+			throws ParseException, SipException, NullPointerException {
+
+		LOGGER.info("parsing the SIP message");		
 
 		return sipMsgParser.parseSIPMessage(msgBuf);
-
 	}
+
 
 }

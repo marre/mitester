@@ -1,7 +1,7 @@
 /*
  * Project: mitesterforsip
  * Author: Mobax
- * Filename: SendResponseHandler.java
+ * Filename: UdpCommn.java
  * Copyright (C) 2008 - 2009  Mobax Networks Private Limited
  * miTester for SIP – License Information
  * --------------------------------------------------
@@ -20,13 +20,13 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 											Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
-
 /*
  * miTester is a test automation framework developed for testing SIP applications. 
  * Developers and testers can simulate any kind of test cases and test applications.
@@ -41,11 +41,12 @@ import gov.nist.javax.sip.message.SIPMessage;
 
 import java.io.IOException;
 import java.net.SocketException;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 import javax.sip.InvalidArgumentException;
 import javax.sip.SipException;
 import javax.sip.message.Response;
+import javax.xml.bind.JAXBException;
 
 import com.mitester.sipserver.sipmessagehandler.ResponseHandler;
 import com.mitester.utility.MiTesterLog;
@@ -55,18 +56,16 @@ import com.mitester.utility.TestUtility;
  * 
  * sends the SIP Response message
  * 
- * 
- * 
  */
 public class SendResponseHandler {
 	private static final Logger LOGGER = MiTesterLog
-	        .getLogger(SendResponseHandler.class.getName());
+			.getLogger(SendResponseHandler.class.getName());
 
 	public static boolean sendResponse(
-	        com.mitester.jaxbparser.server.ACTION action, UdpCommn udpCommn)
-	        throws NullPointerException, java.text.ParseException,
-	        SipException, InvalidArgumentException, SocketException,
-	        IOException {
+			com.mitester.jaxbparser.server.ACTION action, UdpCommn udpCommn)
+			throws NullPointerException, java.text.ParseException,
+			SipException, InvalidArgumentException, SocketException,
+			IOException, JAXBException {
 		boolean isSent = false;
 		int statusCode = 0;
 		int Count = 1;
@@ -78,7 +77,7 @@ public class SendResponseHandler {
 		if (action.getCount() != null) {
 			Count = action.getCount().intValue();
 		}
-		if(action.getDialog() != null){
+		if (action.getDialog() != null) {
 			dialog = action.getDialog();
 		}
 		String send = action.getValue();
@@ -86,26 +85,71 @@ public class SendResponseHandler {
 		String sCode = send.substring(0, methodindex);
 		method = send.substring(methodindex + 1, send.length());
 		statusCode = Integer.parseInt(sCode);
-		
+
 		sipMsg = ProcessSIPMessage.getSIPMessage(method, method,
-		        SERVER_RESPONSE);
+				SERVER_RESPONSE);
 
 		if (sipMsg != null) {
-			
 			res = ResponseHandler.sendResponseWithCode(statusCode, method,
-			        sipMsg,dialog);
+					sipMsg, dialog);
 			msg = res.toString();
+			if (ResponseHandler.getResponse()) {
+				ResponseHandler.setResponse();
+				String[] response = msg.split("\n");
+				String[] line = response[0].split(" ");
+				line[1] = sCode;
+				StringBuffer sb = new StringBuffer();
+				for (int i = 0; i < line.length; i++) {
+					sb.append(line[i].trim());
+					if (i != line.length - 1) {
+						sb.append(" ");
+					}
+				}
+				sb.append("\n");
+				response[0] = sb.toString();
+				StringBuffer response_unsupported = new StringBuffer();
+				for (String resp : response) {
+					response_unsupported.append(resp);
+				}
+				msg = response_unsupported.toString();
+			}
+
+		} else {
+
+			res = ResponseHandler.sendResponseWithCode(statusCode, method,
+					ResponseHandler.createRequest(method), dialog);
+			msg = res.toString();
+			if (ResponseHandler.getResponse()) {
+				ResponseHandler.setResponse();
+				String[] response = msg.split("\n");
+				String[] line = response[0].split(" ");
+				line[1] = sCode;
+				StringBuffer sb = new StringBuffer();
+				for (int i = 0; i < line.length; i++) {
+					sb.append(line[i].trim());
+					if (i != line.length - 1) {
+						sb.append(" ");
+					}
+				}
+				sb.append("\n");
+				response[0] = sb.toString();
+				StringBuffer response_unsupported = new StringBuffer();
+				for (String resp : response) {
+					response_unsupported.append(resp);
+				}
+				msg = response_unsupported.toString();
+			}
 		}
 		msg = SIPHeaderProcessor
-		        .processSipHeaders(action, SERVER_RESPONSE, msg);
+				.processSipHeaders(action, SERVER_RESPONSE, msg);
 
 		for (int i = 1; i <= Count; i++) {
 			TestUtility.printMessage(msg);
 			if (udpCommn.isBounded()) {
 				udpCommn.sendUdpMessage(msg.toString());
 				LOGGER.info(LINE_SEPARATOR + OUTGOING_SIP_MESSAGE
-				        + LINE_SEPARATOR + msg.toString()
-				        + OUTGOING_SIP_MESSAGE);
+						+ LINE_SEPARATOR + msg.toString()
+						+ OUTGOING_SIP_MESSAGE);
 			} else {
 				isSent = false;
 			}
@@ -114,4 +158,5 @@ public class SendResponseHandler {
 
 		return isSent;
 	}
+
 }

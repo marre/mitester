@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 										Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  * Jain SIP stack 		        NIST-CONDITIONS-OF-USE 						https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -68,7 +69,10 @@ import javax.sip.header.ToHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 
+import org.apache.log4j.Logger;
+
 import com.mitester.sipserver.ProcessSIPMessage;
+import com.mitester.utility.MiTesterLog;
 
 /**
  * CreateBYERequestHandler is used to generate the BYE request to terminate the
@@ -78,6 +82,10 @@ import com.mitester.sipserver.ProcessSIPMessage;
  * 
  */
 public class BYERequestHandler {
+
+	private static final Logger LOGGER = MiTesterLog
+			.getLogger(BYERequestHandler.class.getName());
+
 	/**
 	 * Creating BYE Request
 	 * 
@@ -92,6 +100,7 @@ public class BYERequestHandler {
 	public static Request createBYERequest(SIPMessage sipmsg,
 			boolean isOriginator, String dialog) throws NullPointerException,
 			java.text.ParseException, InvalidArgumentException, SipException {
+		LOGGER.info("Generation of BYE Request is started");
 		MessageFactoryImpl messageFactoryImpl = new MessageFactoryImpl();
 		Request request;
 		SipFactory sipFactory = SipFactory.getInstance();
@@ -106,17 +115,18 @@ public class BYERequestHandler {
 				int index = viaValue.indexOf("=");
 				String branch = viaValue
 						.substring(index + 1, viaValue.length());
-				ViaHeader viaHeaderBye = headerFactory.createViaHeader(
-						LOOP_BACK_ADDRESS, FROM_PORT, PROTOCOL, branch);
+				ViaHeader viaHeaderBye = MessageHandlerHelper.createViaHeader(
+						LOOP_BACK_ADDRESS, FROM_PORT, PROTOCOL, branch,
+						headerFactory);
 
 				viaHeaders.add(viaHeaderBye);
-				SipURI requestURI = addressFactory.createSipURI(TO_USER_NAME,
-						LOOP_BACK_ADDRESS);
-				MaxForwardsHeader maxfwd = headerFactory
-						.createMaxForwardsHeader(70);
+				SipURI requestURI = MessageHandlerHelper.createSIPURI(
+						TO_USER_NAME, LOOP_BACK_ADDRESS, addressFactory);
+				MaxForwardsHeader maxfwd = MessageHandlerHelper
+						.createMaxForwardsHeader(70, headerFactory);
 				long invitecseq = sipmsg.getCSeq().getSeqNumber();
-				CSeqHeader cseq = headerFactory.createCSeqHeader(
-						invitecseq + 1, Request.BYE);
+				CSeqHeader cseq = MessageHandlerHelper.createCSeqHeader(
+						invitecseq + 1, Request.BYE, headerFactory);
 
 				CallIdHeader callid;
 				FromHeader fromHeader;
@@ -127,18 +137,23 @@ public class BYERequestHandler {
 					callid = sipMsg.getCallId();
 					fromHeader = sipMsg.getFrom();
 					toHeader = sipMsg.getTo();
+					
+
 				} else {
 					Address from = sipmsg.getFrom().getAddress();
 					String fromTag = sipmsg.getFromTag();
 					Address to = sipmsg.getTo().getAddress();
 					String toTag = sipmsg.getToTag();
 					callid = sipmsg.getCallId();
-					fromHeader = headerFactory.createFromHeader(from, fromTag);
-					toHeader = headerFactory.createToHeader(to, toTag);
+					
+					fromHeader = MessageHandlerHelper.createFromHeader(from,
+							fromTag, headerFactory);
+					toHeader = MessageHandlerHelper.createToHeader(to, toTag,
+							headerFactory);
 				}
-				request = messageFactoryImpl.createRequest(requestURI,
+				request = MessageHandlerHelper.createRequest(requestURI,
 						Request.BYE, callid, cseq, fromHeader, toHeader,
-						viaHeaders, maxfwd);
+						viaHeaders, maxfwd, messageFactoryImpl);
 				request.setMethod(Request.BYE);
 			} else {
 				ViaList via = sipmsg.getViaHeaders();
@@ -166,8 +181,10 @@ public class BYERequestHandler {
 					SIPMessage sipMsg = ProcessSIPMessage.getSIPMessage(dialog,
 							Request.BYE, SERVER_REQUEST);
 					callid = sipMsg.getCallId();
+					
 					fromHeader = sipMsg.getFrom();
 					toHeader = sipMsg.getTo();
+								
 				} else {
 					Address from = sipmsg.getFrom().getAddress();
 					String fromTag = sipmsg.getFromTag();
@@ -239,6 +256,7 @@ public class BYERequestHandler {
 					Request.BYE, callid, cSeqHeader, fromHeader, toHeader,
 					viaHeaders, maxForwards, messageFactoryImpl);
 		}
+		LOGGER.info("Generation of BYE Request is ended");
 		return request;
 	}
 }

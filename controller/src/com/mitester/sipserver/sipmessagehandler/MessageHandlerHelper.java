@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 										Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -56,14 +57,20 @@ import javax.sip.header.ToHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 
+import org.apache.log4j.Logger;
+
+import com.mitester.utility.MiTesterLog;
+
+
+
 /**
  * This class supports the SIP message construction
- * 
- * 
  * 
  */
 
 public class MessageHandlerHelper {
+	private static final Logger LOGGER = MiTesterLog
+	.getLogger(MessageHandlerHelper.class.getName());
 	/**
 	 * this method is used to create a SIP URI from the string
 	 * 
@@ -75,7 +82,9 @@ public class MessageHandlerHelper {
 	 */
 	public static SipURI createSIPURI(String userName, String hostName,
 	        AddressFactory addressFactory) throws ParseException {
+		//LOGGER.info("Creating SIP URI");
 		SipURI sipURI = addressFactory.createSipURI(userName, hostName);
+		
 		return sipURI;
 	}
 
@@ -89,7 +98,9 @@ public class MessageHandlerHelper {
 	 */
 	public static Address createAddress(SipURI sipURI,
 	        AddressFactory addressFactory) throws ParseException {
+		//LOGGER.info("Creating Address from the SIP URI");
 		Address address = addressFactory.createAddress(sipURI);
+		
 		return address;
 	}
 
@@ -104,7 +115,9 @@ public class MessageHandlerHelper {
 	 */
 	public static FromHeader createFromHeader(Address address, String tag,
 	        HeaderFactory headerFactory) throws ParseException {
+		//LOGGER.info("Creating From Header");
 		FromHeader fromHeader = headerFactory.createFromHeader(address, tag);
+		LOGGER.info("Created From Header successfully");
 		return fromHeader;
 	}
 
@@ -119,7 +132,9 @@ public class MessageHandlerHelper {
 	 */
 	public static ToHeader createToHeader(Address address, String tag,
 	        HeaderFactory headerFactory) throws ParseException {
+		//LOGGER.info("Creating To Header");
 		ToHeader toHeader = headerFactory.createToHeader(address, tag);
+		LOGGER.info("Created To Header successfully");
 		return toHeader;
 	}
 
@@ -139,8 +154,10 @@ public class MessageHandlerHelper {
 	public static ViaHeader createViaHeader(String address, int port,
 	        String protocol, String branch, HeaderFactory headerFactory)
 	        throws ParseException, InvalidArgumentException {
+		//LOGGER.info("Creating Via Header");
 		ViaHeader viaHeader = headerFactory.createViaHeader(address, port,
 		        protocol, branch);
+		LOGGER.info("Created Via Header successfully");
 		return viaHeader;
 	}
 
@@ -157,8 +174,10 @@ public class MessageHandlerHelper {
 	public static CSeqHeader createCSeqHeader(long number, String methodName,
 	        HeaderFactory headerFactory) throws ParseException,
 	        InvalidArgumentException {
+		//LOGGER.info("Creating CSeq Header");
 		CSeqHeader cseqHeader = headerFactory.createCSeqHeader(number,
 		        methodName);
+		LOGGER.info("Created CSeq Header successfully");
 		return cseqHeader;
 	}
 
@@ -174,8 +193,10 @@ public class MessageHandlerHelper {
 	public static MaxForwardsHeader createMaxForwardsHeader(int number,
 	        HeaderFactory headerFactory) throws ParseException,
 	        InvalidArgumentException {
+		//LOGGER.info("Creating Max-Forwards Header");
 		MaxForwardsHeader maxForwardsHeader = headerFactory
 		        .createMaxForwardsHeader(number);
+		LOGGER.info("Created Max-Forwards Header successfully");
 		return maxForwardsHeader;
 	}
 
@@ -192,8 +213,10 @@ public class MessageHandlerHelper {
 	public static CallIdHeader createCallIdHeader(String random,
 	        String address, HeaderFactory headerFactory) throws ParseException,
 	        InvalidArgumentException {
+		//LOGGER.info("Creating Call-ID Header");
 		CallIdHeader callIdHeader = headerFactory.createCallIdHeader(random
 		        + AT + address);
+		LOGGER.info("Created Call-ID Header successfully");
 		return callIdHeader;
 	}
 
@@ -209,16 +232,20 @@ public class MessageHandlerHelper {
 	public static ExpiresHeader createExpiresHeader(int expires,
 	        HeaderFactory headerFactory) throws ParseException,
 	        InvalidArgumentException {
+		//LOGGER.info("Creating Expires Header");
 		ExpiresHeader expiresHeader = headerFactory
 		        .createExpiresHeader(expires);
+		LOGGER.info("Created Expires Header successfully");
 		return expiresHeader;
 	}
 
 	public static ContactHeader createContactHeader(Address contactAddress,
 	        HeaderFactory headerFactory) throws ParseException,
 	        InvalidArgumentException {
+		//LOGGER.info("Creating Contact Header");
 		ContactHeader contactHeader = headerFactory
 		        .createContactHeader(contactAddress);
+		LOGGER.info("Created Contact Header successfully");
 		return contactHeader;
 	}
 
@@ -242,9 +269,12 @@ public class MessageHandlerHelper {
 	        FromHeader fromHeader, ToHeader toHeader,
 	        List<ViaHeader> viaHeaders, MaxForwardsHeader maxForwardsHeader,
 	        MessageFactoryImpl messageFactoryImpl) throws ParseException {
+		//LOGGER.info("Creating Creating from the SIP Headers");
 		Request request = messageFactoryImpl.createRequest(requesturi,
 		        methodName, callIdHeader, cseqHeader, fromHeader, toHeader,
 		        viaHeaders, maxForwardsHeader);
+		if(request != null)
+			LOGGER.info("SIP Request is created successfully");
 		return request;
 	}
 }

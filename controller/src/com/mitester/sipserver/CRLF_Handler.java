@@ -1,7 +1,7 @@
 /*
  * Project: mitesterforsip
  * Author: Mobax
- * Filename: CRLF_Handler.java
+ * Filename: UdpCommn.java
  * Copyright (C) 2008 - 2009  Mobax Networks Private Limited
  * miTester for SIP – License Information
  * --------------------------------------------------
@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 											Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -37,7 +38,7 @@ package com.mitester.sipserver;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.StringTokenizer;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 import javax.sip.InvalidArgumentException;
 import javax.sip.SipException;
@@ -178,7 +179,7 @@ public class CRLF_Handler {
 	        throws SipException, ParseException, InvalidArgumentException,
 	        IOException, NullPointerException,
 	        java.lang.IllegalArgumentException {
-		LOGGER.info("Removed CR to the header " + name);
+		LOGGER.info("Removed CR in the '" + name +"' header");
 		StringBuilder builder = new StringBuilder();
 		SIPHeaders headerName = SIPHeaders.getSipHeaderfromString(name
 		        .toUpperCase());
@@ -233,7 +234,7 @@ public class CRLF_Handler {
 	        throws SipException, ParseException, InvalidArgumentException,
 	        IOException, NullPointerException,
 	        java.lang.IllegalArgumentException {
-		LOGGER.info("Removed LF to the header " + name);
+		LOGGER.info("Removed LF in the '" + name +"' header");
 		StringBuilder builder = new StringBuilder();
 		SIPHeaders headerName = SIPHeaders.getSipHeaderfromString(name
 		        .toUpperCase());
@@ -288,7 +289,7 @@ public class CRLF_Handler {
 	        throws SipException, ParseException, InvalidArgumentException,
 	        IOException, NullPointerException,
 	        java.lang.IllegalArgumentException {
-		LOGGER.info("Removed CRLF to the header " + name);
+		LOGGER.info("Removed CRLF in the '" + name +"' header");
 		StringBuilder builder = new StringBuilder();
 		SIPHeaders headerName = SIPHeaders.getSipHeaderfromString(name
 		        .toUpperCase());
@@ -459,7 +460,7 @@ public class CRLF_Handler {
 	        throws SipException, ParseException, InvalidArgumentException,
 	        IOException, NullPointerException,
 	        java.lang.IllegalArgumentException {
-		LOGGER.info("Removing LF to the First Line");
+		LOGGER.info("Removing LF from the First Line");
 		StringBuilder Fcrcr = new StringBuilder();
 		String crcrarray[] = msg.split(NEW_LINE);
 
@@ -493,7 +494,7 @@ public class CRLF_Handler {
 	public static String convertLineCRLFIntoLF(String msg) throws SipException,
 	        ParseException, InvalidArgumentException, IOException,
 	        NullPointerException, java.lang.IllegalArgumentException {
-		LOGGER.info("Removing CR to the First Line");
+		LOGGER.info("Removing CR from the First Line");
 		StringBuilder Fcrcr = new StringBuilder();
 		String crcrarray[] = msg.split(NEW_LINE);
 
@@ -527,7 +528,7 @@ public class CRLF_Handler {
 	public static String removeLineCRLF(String msg) throws SipException,
 	        ParseException, InvalidArgumentException, IOException,
 	        NullPointerException, java.lang.IllegalArgumentException {
-		LOGGER.info("Removing CRLF to the First Line");
+		LOGGER.info("Removing CRLF from the First Line");
 		StringBuilder Fcrcr = new StringBuilder();
 
 		String crcrarray[] = msg.split(NEW_LINE);

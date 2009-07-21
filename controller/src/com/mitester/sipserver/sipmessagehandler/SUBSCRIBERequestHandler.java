@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 										Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -71,7 +72,10 @@ import javax.sip.header.ToHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 
+import org.apache.log4j.Logger;
+
 import com.mitester.sipserver.ProcessSIPMessage;
+import com.mitester.utility.MiTesterLog;
 
 /**
  * A SUBSCRIBE request used for current state and state updates from/to remote
@@ -81,6 +85,10 @@ import com.mitester.sipserver.ProcessSIPMessage;
  * 
  */
 public class SUBSCRIBERequestHandler {
+
+	private static final Logger LOGGER = MiTesterLog
+			.getLogger(SUBSCRIBERequestHandler.class.getName());
+
 	/**
 	 * Generating SUBSCRIBE Request
 	 * 
@@ -90,9 +98,10 @@ public class SUBSCRIBERequestHandler {
 	 * @throws InvalidArgumentException
 	 * @throws SipException
 	 */
-	public static Request createSUBSCRIBERequest(String dialog) throws NullPointerException,
-	        java.text.ParseException, InvalidArgumentException, SipException {
-
+	public static Request createSUBSCRIBERequest(String dialog)
+			throws NullPointerException, java.text.ParseException,
+			InvalidArgumentException, SipException {
+		LOGGER.info("Generation of SUBSCRIBE Request is started");
 		Request request;
 		SipFactory factory = SipFactory.getInstance();
 		HeaderFactory headerFactory = factory.createHeaderFactory();
@@ -100,7 +109,7 @@ public class SUBSCRIBERequestHandler {
 		MessageFactoryImpl messageFactoryImpl = new MessageFactoryImpl();
 		List<ViaHeader> viaHeaders = new ArrayList<ViaHeader>();
 		Random remotetag = new Random();
-		CallIdHeader callid ;
+		CallIdHeader callid;
 		SipURI fromAddress;
 		Address fromNameAddress;
 		FromHeader fromHeader;
@@ -108,81 +117,86 @@ public class SUBSCRIBERequestHandler {
 		Address toNameAddress;
 		ToHeader toHeader;
 		ExpiresHeader expires = null;
-		if(dialog == null) {
-		fromAddress = MessageHandlerHelper.createSIPURI(FROM_USER_NAME,
-		        LOOP_BACK_ADDRESS, addressFactory);
-		fromAddress.setPort(FROM_PORT);
-		fromNameAddress = MessageHandlerHelper.createAddress(
-		        fromAddress, addressFactory);
-		fromNameAddress.setDisplayName(FROM_DISPLAY_NAME);
-		// create from header
-		fromHeader = MessageHandlerHelper.createFromHeader(
-		        fromNameAddress, Integer.toHexString(remotetag.nextInt()),
-		        headerFactory);
+		if (dialog == null) {
+			fromAddress = MessageHandlerHelper.createSIPURI(FROM_USER_NAME,
+					LOOP_BACK_ADDRESS, addressFactory);
+			fromAddress.setPort(FROM_PORT);
+			fromNameAddress = MessageHandlerHelper.createAddress(fromAddress,
+					addressFactory);
+			fromNameAddress.setDisplayName(FROM_DISPLAY_NAME);
+			// create from header
+			fromHeader = MessageHandlerHelper.createFromHeader(fromNameAddress,
+					Integer.toHexString(remotetag.nextInt()), headerFactory);
 
-		toAddress = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
-		        LOOP_BACK_ADDRESS, addressFactory);
-		toAddress.setPort(TO_PORT);
-		toNameAddress = MessageHandlerHelper.createAddress(toAddress,
-		        addressFactory);
-		toNameAddress.setDisplayName(TO_DISPLAY_NAME);
-		// create to Header
-		toHeader = MessageHandlerHelper.createToHeader(toNameAddress,
-		        null, headerFactory);
-		
-		// create call-ID
-		callid = MessageHandlerHelper.createCallIdHeader(Integer
-		        .toHexString(remotetag.nextInt()), LOOP_BACK_ADDRESS,
-		        headerFactory);
+			toAddress = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
+					LOOP_BACK_ADDRESS, addressFactory);
+			toAddress.setPort(TO_PORT);
+			toNameAddress = MessageHandlerHelper.createAddress(toAddress,
+					addressFactory);
+			toNameAddress.setDisplayName(TO_DISPLAY_NAME);
+			// create to Header
+			toHeader = MessageHandlerHelper.createToHeader(toNameAddress, null,
+					headerFactory);
+
+			// create call-ID
+			callid = MessageHandlerHelper.createCallIdHeader(Integer
+					.toHexString(remotetag.nextInt()), LOOP_BACK_ADDRESS,
+					headerFactory);
 		} else {
-			SIPMessage sipMsg = ProcessSIPMessage.getSIPMessage(dialog, Request.PUBLISH,
-			        SERVER_REQUEST);
+			SIPMessage sipMsg = ProcessSIPMessage.getSIPMessage(dialog,
+					Request.PUBLISH, SERVER_REQUEST);
 			callid = sipMsg.getCallId();
 			fromHeader = sipMsg.getFrom();
 			toHeader = sipMsg.getTo();
+			
 		}
+		
 		SipURI requestURI = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
-		        LOOP_BACK_ADDRESS, addressFactory);
+				LOOP_BACK_ADDRESS, addressFactory);
 		requestURI.setPort(TO_PORT);
 
 		// create Vi aheader
 		ViaHeader viaHeader = MessageHandlerHelper.createViaHeader(
-		        LOOP_BACK_ADDRESS, FROM_PORT, PROTOCOL, MAGIC_COOKIES
-		                + Integer.toHexString(remotetag.nextInt()),
-		        headerFactory);
+				LOOP_BACK_ADDRESS, FROM_PORT, PROTOCOL, MAGIC_COOKIES
+						+ Integer.toHexString(remotetag.nextInt()),
+				headerFactory);
 
 		// add via headers
 		viaHeaders.add(viaHeader);
 
 		CSeqHeader cSeqHeader = MessageHandlerHelper.createCSeqHeader(1,
-		        Request.SUBSCRIBE, headerFactory);
+				Request.SUBSCRIBE, headerFactory);
 
 		// Create a new MaxForwardsHeader
 		MaxForwardsHeader maxForwards = MessageHandlerHelper
-		        .createMaxForwardsHeader(MAXFORWARDS, headerFactory);
+				.createMaxForwardsHeader(MAXFORWARDS, headerFactory);
 
 		// create request
 		request = MessageHandlerHelper.createRequest(requestURI,
-		        Request.SUBSCRIBE, callid, cSeqHeader, fromHeader, toHeader,
-		        viaHeaders, maxForwards, messageFactoryImpl);
+				Request.SUBSCRIBE, callid, cSeqHeader, fromHeader, toHeader,
+				viaHeaders, maxForwards, messageFactoryImpl);
 
 		// Create the sip uri for contact header
 		SipURI contactURI = MessageHandlerHelper.createSIPURI(FROM_USER_NAME,
-		        LOOP_BACK_ADDRESS, addressFactory);
+				LOOP_BACK_ADDRESS, addressFactory);
 		contactURI.setPort(FROM_PORT);
 		contactURI.setParameter(TRANSPORT, PROTOCOL);
 		Address contactAddress = MessageHandlerHelper.createAddress(contactURI,
-		        addressFactory);
+				addressFactory);
 		contactAddress.setDisplayName(FROM_USER_NAME);
 
 		// create contact header
 		ContactHeader contactHeader = MessageHandlerHelper.createContactHeader(
-		        contactAddress, headerFactory);
+				contactAddress, headerFactory);
 
 		// adding contact header to request
 		request.addHeader(contactHeader);
-		expires = MessageHandlerHelper.createExpiresHeader(EXPIRES, headerFactory);
+		LOGGER.info("Adding Contact Header to the SUBSCRIBE request");
+		expires = MessageHandlerHelper.createExpiresHeader(EXPIRES,
+				headerFactory);
 		request.addHeader(expires);
+		LOGGER.info("Adding Expires Header to the SUBSCRIBE request");
+		LOGGER.info("Generation of SUBSCRIBE Request is ended");
 		return request;
 	}
 

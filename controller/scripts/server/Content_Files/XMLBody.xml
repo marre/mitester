@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<conference-info version="1.0" state="full" entity="User1@biloxi.com">
+<conf-service id="sip:User2@biloxi.com" group-name="" type="conf-policy"/>
+<user uri="sip:User2@biloxi.com" display-name="UserA">
+<status user-state="active"/>
+</user>
+<user uri="sip:User1@biloxi.com" display-name="UserB">
+<status user-state="pending"/>
+</user>
+</conference-info>

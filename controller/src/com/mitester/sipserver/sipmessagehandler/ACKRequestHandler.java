@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 										Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -72,16 +73,20 @@ import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
+import org.apache.log4j.Logger;
+
 import com.mitester.sipserver.ProcessSIPMessage;
+import com.mitester.utility.MiTesterLog;
 
 /**
  * CreateACKRequestHandler is used to generate the ACK Request for the the 2xx
  * and non-2xx INVITE response
- * 
- * 
- * 
  */
 public class ACKRequestHandler {
+
+	private static final Logger LOGGER = MiTesterLog
+			.getLogger(ACKRequestHandler.class.getName());
+
 	/**
 	 * CreateACKRequest() method is used to generate a ACK Request for the 2xx
 	 * or non-2xx INVITE response
@@ -93,9 +98,11 @@ public class ACKRequestHandler {
 	 * @throws InvalidArgumentException
 	 * @throws SipException
 	 */
-	public static Request createACKRequest(SIPMessage invite,String dialog)
-	        throws NullPointerException, java.text.ParseException,
-	        InvalidArgumentException, SipException {
+
+	public static Request createACKRequest(SIPMessage invite, String dialog)
+			throws NullPointerException, java.text.ParseException,
+			InvalidArgumentException, SipException {
+		LOGGER.info("Creation of ACK Request is started");
 		MessageFactoryImpl messageFactoryImpl = new MessageFactoryImpl();
 		Request request;
 		SipFactory sipFactory = SipFactory.getInstance();
@@ -103,35 +110,35 @@ public class ACKRequestHandler {
 		AddressFactory addressFactory = sipFactory.createAddressFactory();
 		List<ViaHeader> viaHeaders = new ArrayList<ViaHeader>();
 		Random remotetag = new Random();
-		if (invite != null) {
+		if (invite != null && invite.toString().startsWith("SIP/2.0")) {
+			
 			Response response = (Response) invite;
 			ViaHeader viaheader = (Via) response.getHeader(ViaHeader.NAME);
 			// String branch = null;
 			ViaHeader viaHeader = null;
 			ContactHeader contact = null;
-
+			
 			if (response.getStatusCode() == RESPONSE_CODE) {
 				contact = (ContactHeader) response
-				        .getHeader(ContactHeader.NAME);
+						.getHeader(ContactHeader.NAME);
 				contact.getAddress();
 
 				viaHeader = MessageHandlerHelper.createViaHeader(
-				        LOOP_BACK_ADDRESS, FROM_PORT, PROTOCOL, MAGIC_COOKIES
-				                + Integer.toHexString(remotetag.nextInt()),
-				        headerFactory);
+						LOOP_BACK_ADDRESS, FROM_PORT, PROTOCOL, MAGIC_COOKIES
+								+ Integer.toHexString(remotetag.nextInt()),
+						headerFactory);
 
 			} else {
-
 				viaHeader = MessageHandlerHelper.createViaHeader(
-				        LOOP_BACK_ADDRESS, FROM_PORT, PROTOCOL, viaheader
-				                .getBranch(), headerFactory);
+						LOOP_BACK_ADDRESS, FROM_PORT, PROTOCOL, viaheader
+								.getBranch(), headerFactory);
 			}
 
 			viaHeaders.add(viaHeader);
 			SipURI requestURI;
 			if (contact == null) {
 				requestURI = MessageHandlerHelper.createSIPURI(FROM_USER_NAME,
-				        LOOP_BACK_ADDRESS, addressFactory);
+						LOOP_BACK_ADDRESS, addressFactory);
 
 			} else {
 				Address a = contact.getAddress();
@@ -152,82 +159,84 @@ public class ACKRequestHandler {
 			}
 			URI requesturi = addressFactory.createURI(requestURI.toString());
 			MaxForwardsHeader maxfwd = MessageHandlerHelper
-			        .createMaxForwardsHeader(MAXFORWARDS, headerFactory);
+					.createMaxForwardsHeader(MAXFORWARDS, headerFactory);
 
 			long invitecseq = invite.getCSeq().getSeqNumber();
 			CSeqHeader cseq = MessageHandlerHelper.createCSeqHeader(invitecseq,
-			        Request.ACK, headerFactory);
+					Request.ACK, headerFactory);
 			CallIdHeader callid;
 			FromHeader fromHeader;
 			ToHeader toHeader;
-			if(dialog != null) {
-				SIPMessage sipMsg = ProcessSIPMessage.getSIPMessage(dialog, Request.ACK,
-				        SERVER_REQUEST);
+			if (dialog != null) {
+				SIPMessage sipMsg = ProcessSIPMessage.getSIPMessage(dialog,
+						Request.ACK, SERVER_REQUEST);
 				callid = sipMsg.getCallId();
-				fromHeader= sipMsg.getFrom();
+				fromHeader = sipMsg.getFrom();
 				toHeader = sipMsg.getTo();
 			} else {
 				callid = invite.getCallId();
-				fromHeader= invite.getFrom();
+				fromHeader = invite.getFrom();
 				toHeader = invite.getTo();
 			}
+			
+							
 			request = MessageHandlerHelper.createRequest(requesturi,
-			        Request.ACK,callid , cseq,fromHeader ,
-			        toHeader , viaHeaders, maxfwd, messageFactoryImpl);
+					Request.ACK, callid, cseq, fromHeader, toHeader,
+					viaHeaders, maxfwd, messageFactoryImpl);
 
 			request.setMethod(Request.ACK);
 		} else {
 
 			SipURI fromAddress = MessageHandlerHelper.createSIPURI(
-			        FROM_USER_NAME, LOOP_BACK_ADDRESS, addressFactory);
+					FROM_USER_NAME, LOOP_BACK_ADDRESS, addressFactory);
 
 			fromAddress.setPort(FROM_PORT);
 			Address fromNameAddress = MessageHandlerHelper.createAddress(
-			        fromAddress, addressFactory);
+					fromAddress, addressFactory);
 
 			fromNameAddress.setDisplayName(FROM_DISPLAY_NAME);
 			FromHeader fromHeader = MessageHandlerHelper.createFromHeader(
-			        fromNameAddress, Integer.toHexString(remotetag.nextInt()),
-			        headerFactory);
+					fromNameAddress, Integer.toHexString(remotetag.nextInt()),
+					headerFactory);
 
 			SipURI toAddress = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
-			        LOOP_BACK_ADDRESS, addressFactory);
+					LOOP_BACK_ADDRESS, addressFactory);
 
 			toAddress.setPort(TO_PORT);
 			Address toNameAddress = MessageHandlerHelper.createAddress(
-			        toAddress, addressFactory);
+					toAddress, addressFactory);
 
 			toNameAddress.setDisplayName(TO_DISPLAY_NAME);
 			ToHeader toHeader = MessageHandlerHelper.createToHeader(
-			        toNameAddress, null, headerFactory);
+					toNameAddress, null, headerFactory);
 
 			SipURI requestURI = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
-			        LOOP_BACK_ADDRESS, addressFactory);
+					LOOP_BACK_ADDRESS, addressFactory);
 			requestURI.setPort(TO_PORT);
 
 			ViaHeader viaHeader = MessageHandlerHelper.createViaHeader(
-			        LOOP_BACK_ADDRESS, FROM_PORT, PROTOCOL, MAGIC_COOKIES
-			                + Integer.toHexString(remotetag.nextInt()),
-			        headerFactory);
+					LOOP_BACK_ADDRESS, FROM_PORT, PROTOCOL, MAGIC_COOKIES
+							+ Integer.toHexString(remotetag.nextInt()),
+					headerFactory);
 
 			// add via headers
 			viaHeaders.add(viaHeader);
 			CSeqHeader cSeqHeader = MessageHandlerHelper.createCSeqHeader(1,
-			        Request.ACK, headerFactory);
+					Request.ACK, headerFactory);
 
 			// Create a new MaxForwardsHeader
 			MaxForwardsHeader maxForwards = MessageHandlerHelper
-			        .createMaxForwardsHeader(MAXFORWARDS, headerFactory);
+					.createMaxForwardsHeader(MAXFORWARDS, headerFactory);
 			CallIdHeader callid = MessageHandlerHelper.createCallIdHeader(
-			        Integer.toHexString(remotetag.nextInt()),
-			        LOOP_BACK_ADDRESS, headerFactory);
+					Integer.toHexString(remotetag.nextInt()),
+					LOOP_BACK_ADDRESS, headerFactory);
 
 			request = MessageHandlerHelper.createRequest(requestURI,
-			        Request.ACK, callid, cSeqHeader, fromHeader, toHeader,
-			        viaHeaders, maxForwards, messageFactoryImpl);
+					Request.ACK, callid, cSeqHeader, fromHeader, toHeader,
+					viaHeaders, maxForwards, messageFactoryImpl);
 
 		}
-
+		LOGGER.info("Creation of ACK Request is ended");
 		return request;
 	}
 }

@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 					License 											Details
+ * Package 						License 											Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 			NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 					The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -36,68 +37,54 @@ package com.mitester.adapter;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.net.SocketException;
 
 /**
- * It consists of set of abstract methods which are used to establish the TCP
- * communication channel through which miTester sends the client actions and
- * receives client notifications.
+ * This class consists of set of abstract methods which are used to establish
+ * the TCP communication channel through which miTester sends the SUT actions
+ * and receives SUT notifications(status change of SUT).
  */
 public interface Adapter {
 
 	/**
 	 * This method used to start the SUT
 	 * 
-	 * @return true if client started successfully
-	 * @throws IOException
-	 * @throws SocketException
-	 * @throws InterruptedException
+	 * @return true on successful start of SUT
 	 */
 	public boolean start();
 
 	/**
 	 * This method is used to stop the SUT
 	 * 
-	 * @return true if client closed successfully
-	 * @throws NullPointerException
-	 * @throws IllegalArgumentException
-	 * @throws InterruptedException
-	 * @throws IOException
-	 * @throws SocketException
+	 * @return true if client is closed by miTester
 	 */
 	public boolean stop();
 
 	/**
-	 * This method is used to send the message to SUT
+	 * It sends the message(client action) to SUT
 	 * 
-	 * @param message
+	 * @param actionMessage
+	 *            consists of action description going to be simulated by SUT
 	 * @throws IOException
-	 * @throws SocketException
-	 * @throws InterruptedException
 	 */
-	public void send(String message) throws IOException, SocketException,
-			InterruptedException;
+	public void send(String actionMessage) throws IOException;
 
 	/**
-	 * This method used for receiving message from TCP channel
+	 * It receives the message(client status change or notification) from SUT
 	 * 
-	 * @return the String message received from SUT
+	 * @return String message received from SUT
 	 * @throws IOException
-	 * @throws SocketException
-	 * @throws InterruptedException
 	 */
-	public String receive() throws IOException, SocketException,
-			InterruptedException;
+	public String receive() throws IOException;
 
 	/**
-	 * This method used to check the TCP connection
+	 * It used to check the existence of the TCP connection
 	 * 
-	 * @return true if client is connected
+	 * @return true when SUT is connected with miTester
 	 */
 	public boolean isConnected();
 
 	/**
-	 * This method returns the TCP socket object
+	 * It returns the TCP socket
 	 * 
 	 * @return Socket
 	 */
@@ -106,28 +93,29 @@ public interface Adapter {
 	/**
 	 * This method return the closing status of client
 	 * 
-	 * @return true if there is no TCP communication between miTester and SUT
+	 * @return true when SUT is closed
 	 */
 	public boolean isClosed();
 
 	/**
-	 * This method used to check whether client closed by default
+	 * This method used to check whether the client is closed by default
 	 * 
-	 * @return true when closed by itself not closed by miTester
+	 * @return true when stop() is called
 	 */
 	public boolean isStopCalled();
 
 	/**
-	 * This method cleaning up all socket variables
+	 * This method cleaning up all socket related variables
 	 * 
 	 */
 
 	public void cleanUpSocket();
-	
+
 	/**
-	 * This method is used to check the client availability
-	 * @return true if the client is available
+	 * This method is used to check the existence of client
+	 * 
+	 * @return true if the client exists
 	 */
-	public boolean checkClientAvailability();
+	public boolean checkClientAvailable();
 
 }

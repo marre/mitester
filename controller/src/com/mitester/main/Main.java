@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 					License 											Details
+ * Package 						License 											Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 			NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 					The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -32,42 +33,51 @@
  */
 package com.mitester.main;
 
+import static com.mitester.executor.ExecutorConstants.MITESTER_MODE;
+import static com.mitester.sipserver.SipServerConstants.CHECK_PRESENCE_OF_HEADER;
+import static com.mitester.sipserver.SipServerConstants.SERVER_MODE;
+import static com.mitester.sipserver.SipServerConstants.VALIDATION;
+import static com.mitester.sipserver.SipServerConstants.VALIDATION_FILE_PATH;
 import static com.mitester.utility.ConfigurationProperties.CONFIG_INSTANCE;
+import static com.mitester.utility.UtilityConstants.HELP_MODE;
+import static com.mitester.utility.UtilityConstants.NORMAL;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
-import java.util.logging.Logger;
 
 import javax.xml.bind.JAXBException;
+
+import org.apache.log4j.Logger;
 
 import com.mitester.adapter.Adapter;
 import com.mitester.adapter.SipAdapter;
 import com.mitester.executor.TestExecutor;
 import com.mitester.jaxbparser.client.ParseClientScript;
 import com.mitester.jaxbparser.server.ParseServerScript;
-import com.mitester.sipserver.SIPHeaderValidator;
+import com.mitester.jaxbparser.validation.ParseValidationScript;
+import com.mitester.jaxbparser.validation.VALIDATION;
+import com.mitester.sipserver.ProcessSIPMessage;
+import com.mitester.sipserver.features.StartServer;
+import com.mitester.sipserver.headervalidation.PropertyKeyValidation;
 import com.mitester.utility.ConfigurationPropertiesValidator;
+import com.mitester.utility.ConsoleReader;
 import com.mitester.utility.MiTesterLog;
 import com.mitester.utility.TestMode;
 import com.mitester.utility.TestResult;
 import com.mitester.utility.TestUtility;
+import com.mitester.utility.ThreadControl;
 
 /**
  * This is the Main class it starts the miTester after successful parsing of the
  * test scripts.
  * 
  */
+
 public class Main {
 
 	private static final Logger LOGGER = MiTesterLog.getLogger(Main.class
 			.getName());
-
-	private static final String TEST_MODE = "TEST_MODE";
-
-	private static final String SERVER_SCRIPT_PATH = "SERVER_SCRIPT_PATH";
-
-	private static final String CLIENT_SCRIPT_PATH = "CLIENT_SCRIPT_PATH";
 
 	public static void main(String args[]) throws Exception {
 
@@ -79,43 +89,121 @@ public class Main {
 
 		String endTime = null;
 
-		String setLineSeparator = "\r\n";
+		if ((args.length >= 1)
+				&& (args[0].equalsIgnoreCase("--help")
+						|| args[0].equalsIgnoreCase("-h") || args[0]
+						.equalsIgnoreCase("h"))) {
+			
+			TestUtility.printMessage(NORMAL, "");
+			TestUtility.setModeOfDisplay(HELP_MODE);
+			ConsoleReader.printHelpInfo();
+			stopMiTester();
+		}
 
 		LOGGER.info("miTester [STARTED]");
 
-		if (ConfigurationPropertiesValidator.checkPropertyFiles()) {
+		if (CONFIG_INSTANCE.isPropertyFileLoaded()) {
 
-			SIPHeaderValidator sipHeaderValidator = new SIPHeaderValidator();
+			if (CONFIG_INSTANCE.isKeyExists(SERVER_MODE)) {
 
-			// load server configuration properties
-			sipHeaderValidator.loadServerConfigProperties();
+				if (CONFIG_INSTANCE.getValue(SERVER_MODE).equalsIgnoreCase("B2BUA")
+						|| CONFIG_INSTANCE.getValue(SERVER_MODE)
+								.equalsIgnoreCase("PROXY")) {
 
-			Adapter sipAdapter = new SipAdapter();
+					if (CONFIG_INSTANCE.isKeyExists("AUTHENTICATION")) {
+						if (ConfigurationPropertiesValidator
+								.validateAuthentication(CONFIG_INSTANCE
+										.getValue("AUTHENTICATION"))) {
 
-			TestExecutor testExecutor = new TestExecutor(sipAdapter,
-					sipHeaderValidator);
+							// start server
+							new StartServer().startServer();
+						}
 
-			String getLineSeperator = System.getProperty("line.separator");
+					} else {
 
-			if (System.getProperty("os.name").startsWith("Linux")) {
+						// start server
+						new StartServer().startServer();
 
-				// for checking CR, LF cases
-				System.setProperty("line.separator", setLineSeparator);
+					}
+
+				} else {
+
+					TestUtility
+							.printMessage(NORMAL,
+									"SERVER_MODE specified in the 'miTester.properties' file is not valid");
+					LOGGER
+							.error("SERVER_MODE specified in the 'miTester.properties' file is not valid");
+
+				}
+
 			}
 
-			// Get the start time of test execution
-			startTime = TestUtility.getTime();
+			else if (ConfigurationPropertiesValidator.checkPropertyFile()) {
 
-			if (TestMode.getTestModefromString(
-					CONFIG_INSTANCE.getValue(TEST_MODE)).equals(
-					TestMode.ADVANCED)) {
+				if ((CONFIG_INSTANCE.isKeyExists(VALIDATION) && CONFIG_INSTANCE
+						.getValue(VALIDATION).equals("YES"))
+						|| (CONFIG_INSTANCE
+								.isKeyExists(CHECK_PRESENCE_OF_HEADER) && CONFIG_INSTANCE
+								.getValue(CHECK_PRESENCE_OF_HEADER).equals(
+										"YES"))) {
 
-				serverScenarios = parseServerTestScenarios();
-				clientScenarios = parseClientTestScenarios();
+					VALIDATION validation = ParseValidationScript
+							.parseValidationScript(CONFIG_INSTANCE
+									.getValue(VALIDATION_FILE_PATH));
 
-				if ((serverScenarios != null) && (clientScenarios != null)) {
-					if (TestUtility.checkTestsAvailablity(clientScenarios,
-							serverScenarios)) {
+					if ((CONFIG_INSTANCE.isKeyExists(VALIDATION))
+							&& (CONFIG_INSTANCE.getValue(VALIDATION)
+									.equals("YES"))) {
+						if (!PropertyKeyValidation.keyValidation(validation))
+							stopMiTester();
+					}
+
+					if (validation == null)
+						stopMiTester();
+					else
+						ProcessSIPMessage.setValidation(validation);
+				}
+				
+				ThreadControl threadControl = new ThreadControl();
+
+				Adapter sipAdapter = new SipAdapter(threadControl);
+
+				TestExecutor testExecutor = new TestExecutor(sipAdapter,threadControl);
+
+				// Get the start time of test execution
+				startTime = TestUtility.getTime();
+
+				if (TestMode.getTestModefromString(
+						CONFIG_INSTANCE.getValue(MITESTER_MODE)).equals(
+						TestMode.ADVANCED)) {
+
+					serverScenarios = parseServerTestScenarios();
+					clientScenarios = parseClientTestScenarios();
+
+					if ((serverScenarios != null) && (clientScenarios != null)) {
+						if (TestUtility.checkTestsAvailable(clientScenarios,
+								serverScenarios)) {
+
+							// Execute the tests
+							testExecutor.executeTest(clientScenarios,
+									serverScenarios);
+
+							// Get the end time of test execution
+							endTime = TestUtility.getTime();
+
+							// display test result
+							TestResult.printResult(startTime, endTime);
+
+						}
+					}
+
+				} else if (TestMode.getTestModefromString(
+						CONFIG_INSTANCE.getValue(MITESTER_MODE)).equals(
+						TestMode.USER)) {
+
+					serverScenarios = parseServerTestScenarios();
+
+					if ((serverScenarios != null)) {
 
 						// Execute the tests
 						testExecutor.executeTest(clientScenarios,
@@ -126,66 +214,45 @@ public class Main {
 
 						// display test result
 						TestResult.printResult(startTime, endTime);
-
 					}
 				}
-
-			} else if (TestMode.getTestModefromString(
-					CONFIG_INSTANCE.getValue(TEST_MODE)).equals(TestMode.USER)) {
-
-				serverScenarios = parseServerTestScenarios();
-
-				if ((serverScenarios != null)) {
-
-					// Execute the tests
-					testExecutor.executeTest(clientScenarios, serverScenarios);
-
-					// Get the end time of test execution
-					endTime = TestUtility.getTime();
-
-					// display test result
-					TestResult.printResult(startTime, endTime);
-
-				}
-
 			}
 
-			// reset the same as it was set earlier
-			if (System.getProperty("os.name").startsWith("Linux")) {
+			// stop miTester
+			stopMiTester();
 
-				System.setProperty("line.separator", getLineSeperator);
-			}
+		} else {
+
+			// stop miTester
+			stopMiTester();
 
 		}
-
-		// close the input, output and error streams
-		TestUtility.close();
-
-		LOGGER.info("miTester [STOPPED]");
-
-		System.exit(0);
 	}
 
 	/**
 	 * This method used to parse the client test scripts
 	 * 
-	 * @return com.mitester.jaxbparser.client.TEST object which consists of
-	 *         number of client tests and its actions
+	 * @return com.mitester.jaxbparser.client.TEST object which consists of list
+	 *         of client tests
 	 */
 
 	private static List<com.mitester.jaxbparser.client.TEST> parseClientTestScenarios() {
+
 		try {
 			List<com.mitester.jaxbparser.client.TEST> clientScenarios = null;
 
 			ParseClientScript clientScript = new ParseClientScript();
 			String clientScriptPath = CONFIG_INSTANCE
-					.getValue(CLIENT_SCRIPT_PATH);
+					.getValue("SCRIPT_PATH_SUT");
 
 			clientScenarios = clientScript.FileParsingClient(clientScriptPath);
 
 			if (clientScenarios.size() == 0) {
 				TestUtility
-						.printMessage("There are no client scripts exist in the specified client script path");
+						.printMessage(NORMAL,
+								"No client scripts exist in the specified client script path");
+				LOGGER
+						.error("No client scripts exist in the specified client script path");
 				return null;
 			} else {
 				return clientScenarios;
@@ -193,7 +260,7 @@ public class Main {
 
 		} catch (FileNotFoundException ex) {
 			TestUtility.printError(
-					"Specified client Script path doesn't exist", ex);
+					"specified client Script path doesn't exist", ex);
 			return null;
 		} catch (IOException ex) {
 			TestUtility.printError("Error while parsing Client Test scripts",
@@ -218,22 +285,26 @@ public class Main {
 	/**
 	 * This method used to parse the server test scripts
 	 * 
-	 * @return com.mitester.jaxbparser.server.TEST object which consists of
-	 *         number of server tests and its actions
+	 * @return com.mitester.jaxbparser.server.TEST object which consists of list
+	 *         of server tests
 	 */
 
 	private static List<com.mitester.jaxbparser.server.TEST> parseServerTestScenarios() {
+
 		try {
 			List<com.mitester.jaxbparser.server.TEST> serverScenarios;
 			ParseServerScript serverScript = new ParseServerScript();
 			String serverScriptPath = CONFIG_INSTANCE
-					.getValue(SERVER_SCRIPT_PATH);
+					.getValue("SCRIPT_PATH_MITESTER");
 
 			serverScenarios = serverScript.FileParsingServer(serverScriptPath);
 
 			if (serverScenarios.size() == 0) {
 				TestUtility
-						.printMessage("There are no server scripts exist in the specified server script path");
+						.printMessage(NORMAL,
+								"No client scripts exist in the specified server script path");
+				LOGGER
+						.error("No client scripts exist in the specified server script path");
 				return null;
 			} else {
 				return serverScenarios;
@@ -241,7 +312,7 @@ public class Main {
 
 		} catch (FileNotFoundException ex) {
 			TestUtility.printError(
-					"Specified server Script path doesn't exist", ex);
+					"specified server Script path doesn't exist", ex);
 			return null;
 		} catch (IOException ex) {
 			TestUtility.printError("Error while parsing Server Test scripts",
@@ -255,10 +326,26 @@ public class Main {
 			TestUtility.printError("Error while parsing Server Test scripts",
 					ex);
 			return null;
+		} catch (com.mitester.jaxbparser.server.ParserException ex) {
+			LOGGER.error(ex.getMessage());
+			TestUtility.printMessage(NORMAL, ex.getMessage());
+			return null;
 		} catch (Exception ex) {
 			TestUtility.printError("Error while parsing Server Test scripts",
 					ex);
 			return null;
 		}
 	}
+
+	private static void stopMiTester() {
+
+		// close the input, output and error streams
+		TestUtility.close();
+
+		LOGGER.info("miTester [STOPPED]");
+
+		System.exit(0);
+
+	}
+
 }

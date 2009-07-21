@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 										Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -68,7 +69,10 @@ import javax.sip.header.ToHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 
+import org.apache.log4j.Logger;
+
 import com.mitester.sipserver.ProcessSIPMessage;
+import com.mitester.utility.MiTesterLog;
 
 /**
  * A method to acknowledge the 1xx provisional responses received or to quench
@@ -78,6 +82,10 @@ import com.mitester.sipserver.ProcessSIPMessage;
  * 
  */
 public class PRACKRequestHandler {
+
+	private static final Logger LOGGER = MiTesterLog
+			.getLogger(PRACKRequestHandler.class.getName());
+
 	/**
 	 * Generating PRACK Request
 	 * 
@@ -91,6 +99,7 @@ public class PRACKRequestHandler {
 	public static Request createPRACKRequest(SIPMessage sipmsg, String dialog)
 			throws NullPointerException, java.text.ParseException,
 			InvalidArgumentException, SipException {
+		LOGGER.info("Generation of PRACK Request is started");
 		MessageFactoryImpl messageFactoryImpl = new MessageFactoryImpl();
 		Request request;
 		SipFactory factory = SipFactory.getInstance();
@@ -132,14 +141,16 @@ public class PRACKRequestHandler {
 				toHeader = MessageHandlerHelper.createToHeader(from, fromTag,
 						headerFactory);
 				callid = sipmsg.getCallId();
+				
 			} else {
 				SIPMessage sipMsg = ProcessSIPMessage.getSIPMessage(dialog,
 						Request.PRACK, SERVER_REQUEST);
 				callid = sipMsg.getCallId();
 				fromHeader = sipMsg.getFrom();
 				toHeader = sipMsg.getTo();
+				
 			}
-
+			
 			request = MessageHandlerHelper.createRequest(requestURI,
 					Request.PRACK, callid, cseq, fromHeader, toHeader,
 					viaHeaders, maxfwd, messageFactoryImpl);
@@ -198,6 +209,7 @@ public class PRACKRequestHandler {
 					Request.PRACK, callid, cSeqHeader, fromHeader, toHeader,
 					viaHeaders, maxForwards, messageFactoryImpl);
 		}
+		LOGGER.info("Generation of PRACK Request is ended");
 		return request;
 	}
 

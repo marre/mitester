@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 					License 											Details
+ * Package 						License 											Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 			NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 					The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -32,40 +33,40 @@
  */
 package com.mitester.executor;
 
-import static com.mitester.executor.ExecutorConstants.CLIENT_WAIT_TIME;
-import static com.mitester.executor.ExecutorConstants.CLIENT_WAIT_TIME_SEC;
 import static com.mitester.executor.ExecutorConstants.COMMA_SEPARATOR;
+import static com.mitester.executor.ExecutorConstants.DEFAULT_TEST_INTERVAL;
 import static com.mitester.executor.ExecutorConstants.DISCARD_WAIT_TIME_SEC;
-import static com.mitester.executor.ExecutorConstants.EXECUTION_INTERVAL;
-import static com.mitester.executor.ExecutorConstants.CLIENT_EXECUTION_INTERVAL;
 import static com.mitester.executor.ExecutorConstants.SEC;
+import static com.mitester.executor.ExecutorConstants.SUT_WAIT_TIME;
+import static com.mitester.executor.ExecutorConstants.SUT_WAIT_TIME_SEC;
+import static com.mitester.executor.ExecutorConstants.TEST_INTERVAL;
 import static com.mitester.utility.ConfigurationProperties.CONFIG_INSTANCE;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.List;
 import java.util.concurrent.Executors;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
+
+import org.apache.log4j.Logger;
 
 import com.mitester.adapter.Adapter;
 import com.mitester.jaxbparser.client.PARAM;
 import com.mitester.utility.MiTesterLog;
+import com.mitester.utility.TestResult;
 import com.mitester.utility.TestUtility;
 
 /**
- * This class automates SIP client functionalities by sending client actions to
- * SUT through the TCP channel established by an Adapter and controls the client
- * actions according to the flow described in the test script. It implements
- * Timer threads which are used to suspend the client actions temporarily for
- * the specified time duration and sets the maximum time to the controller will
- * wait for receiving notifications from SUT. It also set the test result
- * status.
+ * This class automates SIP client(SUT) functionalities. It sends the client
+ * actions and receives the client notifications(client status change)through
+ * the TCP channel established between SUT and miTester and it controls the
+ * client actions according to the flow described in the test script. It
+ * implements Timer threads which are used to suspend the client actions
+ * temporarily for the specified time duration and sets the maximum time to the
+ * controller will wait for receiving notifications from SUT.
  * 
  */
 
@@ -74,31 +75,36 @@ public class ClientScriptRunner {
 	private static final Logger LOGGER = MiTesterLog
 			.getLogger(ClientScriptRunner.class.getName());
 
-	private final int MAXIMUM_CLIENT_WAIT_TIME;
+	private final int MAXIMUM_SUT_WAIT_TIME;
 
-	private final int CLIENT_TEST_EXECUTION_INTERVAL;
+	private final int EXECUTION_INTERVAL;
 
 	private ScheduledExecutorService clientTimerScheduler = Executors
 			.newScheduledThreadPool(1);
 
-	private boolean isClientTestStart = false;
+	private volatile boolean isClientTestStart = false;
 
-	private boolean isClientTestSucceed = false;
+	private volatile boolean isClientTestSucceed = false;
 
-	private ScheduledFuture<?> clientTestEndTimer = null;
+	private volatile boolean isTimerExpired = false;
+
+	private volatile ScheduledFuture<?> clientTestEndTimer = null;
+
+	private String actName = null;
 
 	private TestExecutor testExecutor = null;
 
 	private Adapter adapter = null;
 
 	/**
-	 * constructor initialize the adapter,testExecutor and
-	 * MAXIMUM_CLIENT_WAIT_TIME variables
+	 * It initializes the adapter,testExecutor and MAXIMUM_SUT_WAIT_TIME
+	 * instance variables
 	 * 
 	 * @param adapter
-	 *            is an Adapter interface object
+	 *            Adapter interface
 	 * @param testExecutor
-	 *            is a TestExecutor class object
+	 *            TestExecutor class object
+	 * 
 	 */
 
 	public ClientScriptRunner(Adapter adapter, TestExecutor testExecutor) {
@@ -107,36 +113,36 @@ public class ClientScriptRunner {
 		this.testExecutor = testExecutor;
 
 		// set the client wait time
-		if (CONFIG_INSTANCE.isKeyExists(CLIENT_WAIT_TIME)) {
-			MAXIMUM_CLIENT_WAIT_TIME = Integer.parseInt(CONFIG_INSTANCE
-					.getValue(CLIENT_WAIT_TIME));
+		if (CONFIG_INSTANCE.isKeyExists(SUT_WAIT_TIME)) {
+			MAXIMUM_SUT_WAIT_TIME = Integer.parseInt(CONFIG_INSTANCE
+					.getValue(SUT_WAIT_TIME));
 		} else {
-			MAXIMUM_CLIENT_WAIT_TIME = CLIENT_WAIT_TIME_SEC;
+			MAXIMUM_SUT_WAIT_TIME = SUT_WAIT_TIME_SEC;
 		}
 
 		// set the client execution interval
-		if (CONFIG_INSTANCE.isKeyExists(EXECUTION_INTERVAL)) {
-			CLIENT_TEST_EXECUTION_INTERVAL = Integer.parseInt(CONFIG_INSTANCE
-					.getValue(EXECUTION_INTERVAL)) * 1000;
+		if (CONFIG_INSTANCE.isKeyExists(TEST_INTERVAL)) {
+			EXECUTION_INTERVAL = Integer.parseInt(CONFIG_INSTANCE
+					.getValue(TEST_INTERVAL)) * 1000;
 		} else {
-			CLIENT_TEST_EXECUTION_INTERVAL = CLIENT_EXECUTION_INTERVAL;
+			EXECUTION_INTERVAL = DEFAULT_TEST_INTERVAL;
 		}
 
 	}
 
 	/**
-	 * Execute the client Test
+	 * Execute the client or SUT Test
 	 * 
 	 * @param clientTest
-	 *            is a com.mitester.jaxbparser.client.TEST object represents the
-	 *            set of client actions
-	 * @return Runnable
+	 *            consists of set of client actions
+	 * 
+	 * @return Runnable interface
 	 */
 
 	public Runnable frameClientRunnable(
 			final com.mitester.jaxbparser.client.TEST clientTest) {
 
-		// cleanUp client Tests
+		// clean-up client Tests
 		cleanUpClientTest();
 
 		return new Runnable() {
@@ -177,22 +183,28 @@ public class ClientScriptRunner {
 							if (isWAIT) {
 
 								TestUtility
-										.printMessage("client action in sleeping ...");
-								LOGGER.info("client action in sleeping ...");
+										.printMessage("client action in sleeping...");
+								LOGGER.info("client action in sleeping...");
 
 								// wait for specified time
 								waitClientAction(wait);
 
 								TestUtility
-										.printMessage("resumed client action ...");
-								LOGGER.info("resumed the client action ...");
+										.printMessage("resumed the client action...");
+								LOGGER.info("resumed the client action...");
 
 							} else if (action.getRECV() != null) {
+
+								// set ACTION name
+								setSUTActionName(action.getValue());
 
 								// receive and process the message
 								receiveMsgFromSUT(action.getValue());
 
 							} else if (action.getSEND() != null) {
+
+								// set ACTION name
+								setSUTActionName(action.getValue());
 
 								// send the message to SUT
 								sendMsgtoSUT(action);
@@ -211,35 +223,33 @@ public class ClientScriptRunner {
 
 						}
 					} else {
-						TestUtility
-								.printMessage("Error while starting client ...");
-
+						TestUtility.printMessage("error while starting SUT");
+						LOGGER.error("error while starting SUT");
 					}
 
 					if ((actionCount >= noOfClientActions)
 							&& (noOfClientActions > 0)) {
 						isClientTestSucceed = true;
 					}
-
-				} catch (SocketException ex) {
-					TestUtility.printMessage("TCP socket closed");
-				} catch (IOException ex) {
-					TestUtility.printError("Error while running Client Test",
-							ex);
-				} catch (NullPointerException ex) {
-					TestUtility.printError("Error while running Client Test",
-							ex);
-				} catch (SecurityException ex) {
-					TestUtility.printError("Error while running Client Test",
-							ex);
-				} catch (IllegalArgumentException ex) {
-					TestUtility.printError("Error while running Client Test",
-							ex);
-				} catch (InterruptedException ex) {
-					TestUtility.printError("Error while running Client Test",
-							ex);
-				} catch (RejectedExecutionException ex) {
-					TestUtility.printError("Error while scheduling task", ex);
+				} catch (com.mitester.executor.ControllerException ex) {
+					if (!isTimerExpired)
+						LOGGER.error(ex.getMessage());
+					if (testExecutor.getIsValidationFailed())
+						TestResult.setFailReason(testExecutor
+								.getBufferedFailString()
+								+ ", " + ex.getMessage());
+					else
+						TestResult.setFailReason(ex.getMessage());
+				} catch (Exception ex) {
+					if (!isTimerExpired)
+						LOGGER.error(ex.getMessage());
+					if (testExecutor.getIsValidationFailed())
+						TestResult.setFailReason(testExecutor
+								.getBufferedFailString()
+								+ ", error while executing client test script");
+					else
+						TestResult
+								.setFailReason("error while executing client test script");
 				} finally {
 
 					// stop the timer if run
@@ -250,40 +260,49 @@ public class ClientScriptRunner {
 						if (!adapter.isStopCalled()) {
 
 							LOGGER
-									.info("stopping client as the call flow of test execution is incomplete");
+									.info("stopping the client as the call flow of test execution is incomplete");
 
-							/* stop the application */
-							adapter.stop();
+							// stop the application
+							if (adapter.stop())
+								LOGGER.info("SUT is closed");
+							else
+								LOGGER
+										.info("closing or stopping SUT is failed");
 
 						}
 					}
 
 					// wait for specified time interval
-					startClientWaitTimer((long) CLIENT_TEST_EXECUTION_INTERVAL);
+					startClientWaitTimer((long) EXECUTION_INTERVAL);
 
 					if (isClientTestSucceed) {
-						TestUtility
-								.printMessage("client actions completed ...");
-						LOGGER.info("client actions completed ...");
+						TestUtility.printMessage("SUT actions completed...");
+						LOGGER.info("SUT actions completed...");
+					} else
+						LOGGER.info("incomplete client scenario...");
+
+					// count down latch
+					if (testExecutor.getClientTestCountDownLatch().getCount() == 1) {
+						testExecutor.getClientTestCountDownLatch().countDown();
 					}
 
-					// stop the execution
-					if (testExecutor.getClientCountDownLatch().getCount() > 0) {
-						testExecutor.getClientCountDownLatch().countDown();
-					}
 				}
+
 			}
+
 		};
 	}
 
 	/**
-	 * This method called during the client test execution for suspending server
-	 * action temporarily
+	 * This method called during the client test execution for suspending client
+	 * action
 	 * 
-	 * @throws InterruptedException
+	 * @param time
+	 *            amount of time(in milliseconds) to wait
 	 * 
 	 */
 	private void startClientWaitTimer(long time) {
+
 		try {
 
 			TimeUnit.MILLISECONDS.sleep(time);
@@ -295,7 +314,7 @@ public class ClientScriptRunner {
 	}
 
 	/**
-	 * method called during the client test execution to stop the client timer
+	 * It stops the client wait timer
 	 * 
 	 */
 	private void stopClientTimer() {
@@ -303,69 +322,91 @@ public class ClientScriptRunner {
 		if (clientTestEndTimer != null) {
 			clientTestEndTimer.cancel(true);
 			clientTestEndTimer = null;
-			LOGGER.info("wait timer stopped");
+			LOGGER.info("wait timer is stopped");
 		}
 	}
 
 	/**
-	 * This method called when tool started to wait for expected notification
-	 * from client. starts timer, wait for specified time duration. if the
-	 * expected notification not received in specified time duration, forcefully
-	 * ends the client test.
 	 * 
+	 * This method called when tool is started to wait for expected
+	 * notification(SUT state change) from client. It starts timer, wait for
+	 * specified time duration if the expected notification not received in
+	 * specified time, forcefully ends the client test.
+	 * 
+	 * @param adapter
+	 *            Adapter interface
 	 */
+
 	private void startClientTimer(final Adapter adapter) {
 
 		if (clientTestEndTimer != null) {
 			clientTestEndTimer.cancel(true);
 			clientTestEndTimer = null;
 		}
-		LOGGER.info("wait timer started");
+		LOGGER.info("client wait timer is started");
+
 		clientTestEndTimer = clientTimerScheduler.schedule(new Runnable() {
 			public void run() {
 
-				clientTestEndTimer.cancel(true);
-				clientTestEndTimer = null;
+				isTimerExpired = true;
+
+				if (testExecutor.getIsValidationFailed()) {
+					String errStr = testExecutor.getBufferedFailString()
+							+ ", expected '" + getSUTActionName()
+							+ "' message not received from SUT";
+					TestResult.setFailReason(errStr);
+					LOGGER.error(errStr);
+				} else {
+
+					String errStr = "expected '" + getSUTActionName()
+							+ "' message is not received from SUT";
+					TestResult.setFailReason(errStr);
+					LOGGER.error(errStr);
+
+				}
+				LOGGER
+						.info("stopping the client as the client timer is expired");
 
 				// stop the client
 				stopClientTestExecution();
 
 			}
-		}, MAXIMUM_CLIENT_WAIT_TIME, TimeUnit.SECONDS);
+		}, MAXIMUM_SUT_WAIT_TIME, TimeUnit.SECONDS);
 	}
 
 	/**
-	 * This method returns the client start status
+	 * It returns the client start status
 	 * 
-	 * @return boolean
+	 * @return true if client is started
 	 */
 	public boolean getClientTestStart() {
 		return isClientTestStart;
 	}
 
 	/**
-	 * This method called to clean-up the client test variables
+	 * It cleans the ClientScriptRunner instance variables
 	 * 
 	 */
 	private void cleanUpClientTest() {
 
 		isClientTestStart = false;
 		isClientTestSucceed = false;
+		isTimerExpired = false;
 		clientTestEndTimer = null;
-
+		actName = null;
 	}
 
 	/**
-	 * This method returns the client test result
+	 * It returns the client test result status
 	 * 
-	 * @return boolean
+	 * @return client test result status
 	 */
 	public boolean getClientTestResult() {
 		return isClientTestSucceed;
 	}
 
 	/**
-	 * This method returns the ScheduledExecutorService
+	 * It returns the ScheduledExecutorService
 	 * 
 	 * @returns ScheduledExecutorService
 	 */
@@ -374,53 +415,62 @@ public class ClientScriptRunner {
 	}
 
 	/**
-	 * This method sends the action to SUT
+	 * It sends the action to SUT
 	 * 
 	 * @param action
-	 *            is a com.mitester.jaxbparser.client.ACTION object includes
-	 *            action related information
-	 * @throws SocketException
-	 * @throws IOException
-	 * @throws InterruptedException
+	 *            is a com.mitester.jaxbparser.client.ACTION object consists of
+	 *            action details
+	 * @throws ControllerException
 	 */
 
 	private void sendMsgtoSUT(com.mitester.jaxbparser.client.ACTION action)
-			throws SocketException, IOException, InterruptedException {
+			throws ControllerException {
 
 		List<PARAM> paramList = null;
 		String clientActionValue = null;
-		paramList = action.getPARAM();
 
-		StringBuilder tempBuf = new StringBuilder();
+		try {
+			paramList = action.getPARAM();
 
-		if (paramList.size() > 0) {
+			StringBuilder tempBuf = new StringBuilder();
 
-			for (PARAM param : paramList) {
+			if (paramList.size() > 0) {
 
-				tempBuf.append(param.getValue());
-				tempBuf.append(COMMA_SEPARATOR);
+				for (PARAM param : paramList) {
+					tempBuf.append(param.getValue());
+					tempBuf.append(COMMA_SEPARATOR);
+				}
+				clientActionValue = action.getValue() + COMMA_SEPARATOR
+						+ tempBuf.toString();
 
+			} else {
+
+				clientActionValue = action.getValue();
 			}
 
-			clientActionValue = action.getValue() + COMMA_SEPARATOR
-					+ tempBuf.toString();
+			// send message to SUT
+			adapter.send(clientActionValue);
 
-		} else {
-
-			clientActionValue = action.getValue();
+		} catch (IOException ex) {
+			LOGGER.error(ex.getMessage(), ex);
+			throw new com.mitester.executor.ControllerException(
+					"Error while sending '" + getSUTActionName()
+							+ "' ACTION message to SUT");
+		} catch (Exception ex) {
+			LOGGER.error(ex.getMessage(), ex);
+			throw new com.mitester.executor.ControllerException(
+					"Error while sending '" + getSUTActionName()
+							+ "' ACTION message to SUT");
 		}
-
-		// send message to SUT
-		adapter.send(clientActionValue);
 
 	}
 
 	/**
-	 * this method used to suspend the client test execution
+	 * It used to suspend the client test execution
 	 * 
 	 * @param wait
-	 *            is a com.mitester.jaxbparser.client.WAIT object includes the
-	 *            Time related information
+	 *            is a com.mitester.jaxbparser.client.WAIT object consists of
+	 *            the Time related informations
 	 */
 	private void waitClientAction(com.mitester.jaxbparser.client.WAIT wait) {
 
@@ -440,109 +490,125 @@ public class ClientScriptRunner {
 	}
 
 	/**
-	 * miTester whether the client accepts the discarded message if client
-	 * accepts discarded message, immediately it stops the execution
+	 * It waiting for discarded message from SUT
 	 * 
-	 * @throws SocketTimeoutException
-	 * @throws SocketException
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * @return true if client doesn't accept the discarded SIP message
+	 * @throws ControllerException
 	 */
 
 	private boolean waitForDiscardMsg(String clientActionValue)
-			throws SocketTimeoutException, SocketException, IOException,
-			InterruptedException {
-
-		// set socket timeout
-		adapter.getSocket().setSoTimeout((DISCARD_WAIT_TIME_SEC * 1000));
-
-		String receivedMsg = null;
+			throws ControllerException {
 
 		try {
-			
-			long timetoWait = DISCARD_WAIT_TIME_SEC * 1000;
-
-			do {
-
-				long startTime = System.currentTimeMillis();
-
-				receivedMsg = adapter.receive();
-
-				TestUtility.printMessage("MSG from SUT <==" + receivedMsg);
-
-				long elapsedTime = System.currentTimeMillis() - startTime;
-
-				if (elapsedTime < timetoWait) {
-					timetoWait = timetoWait
-							- elapsedTime;
-				} else {
-					timetoWait = DISCARD_WAIT_TIME_SEC * 1000;
-				}
-				
-				// set socket timeout
-				adapter.getSocket().setSoTimeout((int) timetoWait);
-
-			} while (!(receivedMsg.equals(clientActionValue)));
-
-			TestUtility
-					.printMessage("client accepted the discarded SIP message");
-			LOGGER.severe("client accepted the discarded SIP message");
-
-			LOGGER
-					.info("stopping client as the client accepting the discarded sip message");
-
-			// stop the client
-			if (!adapter.stop()) {
-				TestUtility
-						.printMessage("Not able to kill the application... ");
-				LOGGER.severe("Not able to kill the application...");
-			}
-
-			return false;
-
-		} catch (SocketTimeoutException ex) {
 
 			// set socket timeout
-			adapter.getSocket().setSoTimeout(0);
+			adapter.getSocket().setSoTimeout((DISCARD_WAIT_TIME_SEC * 1000));
 
-			return true;
+			String receivedMsg = null;
 
+			try {
+
+				long timetoWait = DISCARD_WAIT_TIME_SEC * 1000;
+
+				do {
+
+					long startTime = System.currentTimeMillis();
+
+					receivedMsg = adapter.receive();
+
+					TestUtility.printMessage("MSG from SUT <==" + receivedMsg);
+
+					long elapsedTime = System.currentTimeMillis() - startTime;
+
+					if (elapsedTime < timetoWait) {
+						timetoWait = timetoWait - elapsedTime;
+					} else {
+						timetoWait = DISCARD_WAIT_TIME_SEC * 1000;
+					}
+
+					// set socket timeout
+					adapter.getSocket().setSoTimeout((int) timetoWait);
+
+				} while (!(receivedMsg.equals(clientActionValue)));
+
+				TestUtility
+						.printMessage("SUT is accepted the discarded SIP message");
+				LOGGER.error("SUT is accepted the discarded SIP message");
+				TestResult
+						.setFailReason("SUT is accepted the discarded SIP message");
+
+				LOGGER
+						.info("stopping the SUT as the SUT accepted the discarded sip message");
+
+				// stop the client
+				stopClientTestExecution();
+
+				return false;
+
+			} catch (SocketTimeoutException ex) {
+
+				LOGGER.info("SUT is not accepting the discarded message");
+
+				// set socket timeout
+				adapter.getSocket().setSoTimeout(0);
+
+				return true;
+			}
+
+		} catch (IOException ex) {
+			LOGGER.error(ex.getMessage(), ex);
+			throw new com.mitester.executor.ControllerException(
+					"TCP communication channel is disconnected between SUT and miTester");
+		} catch (Exception ex) {
+			LOGGER.error(ex.getMessage(), ex);
+			throw new com.mitester.executor.ControllerException(
+					"Error while receiving discardable message from SUT");
 		}
 
 	}
 
 	/**
-	 * receive and process the message from SUT and returns true if miTester
-	 * receives expected message from SUT
+	 * It receives and process the message from SUT
 	 * 
-	 * @throws InterruptedException
-	 * @throws IOException
-	 * @throws SocketException
+	 * @param clientActionValue
+	 *            specifies message is being expected from client
+	 * @throws ControllerException
 	 */
 
 	private void receiveMsgFromSUT(String clientActionValue)
-			throws SocketException, IOException, InterruptedException {
+			throws ControllerException {
 
-		String receivedMsg = null;
+		try {
 
-		// start the timer
-		startClientTimer(adapter);
+			String receivedMsg = null;
 
-		// LOGGER.info("Expected Message from SUT is " + clientActionValue);
+			// start the timer
+			startClientTimer(adapter);
 
-		do {
+			do {
+				// receive message from SUT
+				receivedMsg = adapter.receive();
 
-			// receive message from SUT
-			receivedMsg = adapter.receive();
+				TestUtility.printMessage("MSG from SUT <==" + receivedMsg);
 
-			TestUtility.printMessage("MSG from SUT <==" + receivedMsg);
+			} while (!(receivedMsg.equals(clientActionValue)));
 
-		} while (!(receivedMsg.equals(clientActionValue)));
+			// stop the timer if run
+			stopClientTimer();
 
-		LOGGER.info("Expected Message received " + clientActionValue);
+		} catch (IOException ex) {
 
-		// stop the timer if run
-		stopClientTimer();
+			if (!isTimerExpired)
+				LOGGER.error(ex.getMessage());
+			throw new com.mitester.executor.ControllerException(
+					"TCP communication channel is disconnected between SUT and miTester");
+		} catch (Exception ex) {
+			if (!isTimerExpired)
+				LOGGER.error(ex.getMessage());
+			throw new com.mitester.executor.ControllerException(
+					"Error while receiving '" + getSUTActionName()
+							+ "' message from SUT");
+		}
 
 	}
 
@@ -555,17 +621,17 @@ public class ClientScriptRunner {
 	private boolean startSUT() {
 
 		if (!adapter.isConnected()) {
+			LOGGER.info("SUT is not connected");
 
 			// start SUT and establish the TCP channel
 			if (!adapter.start()) {
-//				TestUtility.printMessage("client not started");
 				return false;
 			}
 		} else {
-			TestUtility.printMessage("client started");
+			TestUtility.printMessage("SUT is started");
 		}
 		return true;
-		
+
 	}
 
 	/**
@@ -574,14 +640,46 @@ public class ClientScriptRunner {
 
 	public void stopClientTestExecution() {
 
-		LOGGER.info("stopping client as the timer got expired");
+		if (!System.getProperty("os.name").startsWith("SunOS")
+				&& !System.getProperty("os.name").startsWith("Solaris"))
+			LOGGER.info("called stopClientTestExecution");
+
+		if (clientTestEndTimer != null)
+			clientTestEndTimer.cancel(true);
+
+		clientTestEndTimer = null;
 
 		// stop the client
 		if (!adapter.stop()) {
-
-			TestUtility.printMessage("Not able to kill the application... ");
-			LOGGER.severe("Not able to kill the application...");
+			TestUtility.printMessage("closing or stopping SUT is failed");
+			LOGGER.error("closing or stopping SUT is failed");
+		} else {
+			if (!System.getProperty("os.name").startsWith("SunOS")
+					&& !System.getProperty("os.name").startsWith("Solaris"))
+				LOGGER.info("SUT is closed");
 		}
+	}
+
+	/**
+	 * return the ACTION name
+	 * 
+	 * @return the current ACTION name
+	 */
+
+	private String getSUTActionName() {
+		return actName;
+	}
+
+	/**
+	 * set the SUT ACTION name
+	 * 
+	 * @param actName
+	 *            name of the current ACTION
+	 */
+
+	private void setSUTActionName(String actName) {
+
+		this.actName = actName;
 	}
 
 }

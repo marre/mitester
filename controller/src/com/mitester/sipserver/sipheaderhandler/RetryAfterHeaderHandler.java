@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 										Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -41,7 +42,7 @@ import gov.nist.javax.sip.message.SIPMessage;
 
 import java.text.ParseException;
 import java.util.List;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 import javax.sip.InvalidArgumentException;
 import javax.sip.SipException;
@@ -82,7 +83,7 @@ import com.mitester.utility.MiTesterLog;
  */
 public class RetryAfterHeaderHandler {
 	private static final Logger LOGGER = MiTesterLog
-	        .getLogger(RetryAfterHeaderHandler.class.getName());
+			.getLogger(RetryAfterHeaderHandler.class.getName());
 
 	/**
 	 * addRetryAfterHeader is used to add accept-encoding header
@@ -97,13 +98,13 @@ public class RetryAfterHeaderHandler {
 	 * @throws IndexOutOfBoundsException
 	 */
 	public static RetryAfterHeader createRetryAfterHeader(Header headerNew)
-	        throws SipException, ParseException, InvalidArgumentException,
-	        IndexOutOfBoundsException {
+			throws SipException, ParseException, InvalidArgumentException,
+			IndexOutOfBoundsException {
 
 		LOGGER.info("Creating "
-		        + SIPHeaders.getSipHeaderfromString(
-		                headerNew.getName().toUpperCase()).toString()
-		        + " Header");
+				+ SIPHeaders.getSipHeaderfromString(
+						headerNew.getName().toUpperCase()).toString()
+				+ " Header");
 
 		RetryAfterHeader retryafter = null;
 		String Comment = null;
@@ -118,7 +119,7 @@ public class RetryAfterHeaderHandler {
 			hvalue = RETRYAFTER;
 
 		retryafter = headerFactroy.createRetryAfterHeader(Integer
-		        .parseInt(hvalue));
+				.parseInt(hvalue));
 
 		List<Param> param = headerNew.getParam();
 
@@ -149,9 +150,9 @@ public class RetryAfterHeaderHandler {
 	 * @throws java.lang.IllegalArgumentException
 	 */
 	public static SIPMessage removeRetryAfterHeader(Header header,
-	        SIPMessage sipMessage, String type) throws SipException,
-	        ParseException, InvalidArgumentException, NullPointerException,
-	        java.lang.IllegalArgumentException {
+			SIPMessage sipMessage, String type) throws SipException,
+			ParseException, InvalidArgumentException, NullPointerException,
+			java.lang.IllegalArgumentException {
 		Request request = null;
 		Response response = null;
 		SIPMessage returnsipMessage = null;
@@ -159,11 +160,25 @@ public class RetryAfterHeaderHandler {
 			response = (Response) sipMessage;
 		else
 			request = (Request) sipMessage;
-
+		RetryAfterHeader retryafter = null;
 		if (type.equalsIgnoreCase(SipServerConstants.SERVER_RESPONSE))
-			response.removeHeader(RetryAfter.RETRY_AFTER);
+			retryafter = (RetryAfterHeader) response
+					.getHeader(RetryAfterHeader.NAME);
 		else
-			request.removeHeader(RetryAfter.RETRY_AFTER);
+			retryafter = (RetryAfterHeader) request
+					.getHeader(RetryAfterHeader.NAME);
+		List<Param> removeParams = header.getParam();
+		if (removeParams.size() == 0) {
+			if (type.equalsIgnoreCase(SipServerConstants.SERVER_RESPONSE))
+				response.removeHeader(RetryAfter.RETRY_AFTER);
+			else
+				request.removeHeader(RetryAfter.RETRY_AFTER);
+		} else {
+			for (Param parameterName : removeParams) {
+				retryafter.removeParameter(parameterName.getName());
+			}
+
+		}
 		if (type.equalsIgnoreCase(SipServerConstants.SERVER_RESPONSE))
 			returnsipMessage = (SIPMessage) response;
 		else

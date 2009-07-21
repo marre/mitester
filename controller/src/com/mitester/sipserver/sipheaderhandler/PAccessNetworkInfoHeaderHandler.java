@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 										Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -36,19 +37,23 @@ package com.mitester.sipserver.sipheaderhandler;
 
 import gov.nist.javax.sip.header.HeaderFactoryImpl;
 import gov.nist.javax.sip.header.ims.PAccessNetworkInfoHeader;
+import gov.nist.javax.sip.message.SIPMessage;
 
 import java.text.ParseException;
 import java.util.List;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 import javax.sip.InvalidArgumentException;
 import javax.sip.SipException;
 import javax.sip.SipFactory;
 import javax.sip.header.HeaderFactory;
+import javax.sip.message.Request;
+import javax.sip.message.Response;
 
 import com.mitester.jaxbparser.server.Header;
 import com.mitester.jaxbparser.server.Param;
 import com.mitester.sipserver.SIPHeaders;
+import com.mitester.sipserver.SipServerConstants;
 import com.mitester.utility.MiTesterLog;
 
 /**
@@ -143,5 +148,56 @@ public class PAccessNetworkInfoHeaderHandler {
 		}
 
 		return PAccessNetworkInfo;
+	}
+	/**
+	 * to remove P Access Netork Info Header from the sip message
+	 * 
+	 * @param header
+	 * @param sipMessage
+	 * @param type
+	 * @return
+	 * @throws SipException
+	 * @throws ParseException
+	 * @throws InvalidArgumentException
+	 * @throws NullPointerException
+	 * @throws java.lang.IllegalArgumentException
+	 */
+	public static SIPMessage removePAccessNetworkInfoHeader(Header header,
+	        SIPMessage sipMessage, String type) throws SipException,
+	        ParseException, InvalidArgumentException, NullPointerException,
+	        java.lang.IllegalArgumentException {
+		Request request = null;
+		Response response = null;
+		SIPMessage returnsipMessage = null;
+		if (type.equalsIgnoreCase(SipServerConstants.SERVER_RESPONSE))
+			response = (Response) sipMessage;
+		else
+			request = (Request) sipMessage;
+
+		PAccessNetworkInfoHeader paccessNetwork = null;
+		if (type.equalsIgnoreCase(SipServerConstants.SERVER_RESPONSE))
+			paccessNetwork = (PAccessNetworkInfoHeader) response
+			        .getHeader(PAccessNetworkInfoHeader.NAME);
+		else
+			paccessNetwork = (PAccessNetworkInfoHeader) request
+			        .getHeader(PAccessNetworkInfoHeader.NAME);
+		List<Param> removeParams = header.getParam();
+
+		for (Param parameterName : removeParams) {
+			paccessNetwork.removeParameter(parameterName.getName());
+		}
+
+		if (removeParams.size() == 0) {
+			if (type.equalsIgnoreCase(SipServerConstants.SERVER_RESPONSE))
+				response.removeHeader(PAccessNetworkInfoHeader.NAME);
+			else
+				request.removeHeader(PAccessNetworkInfoHeader.NAME);
+		}
+
+		if (type.equalsIgnoreCase(SipServerConstants.SERVER_RESPONSE))
+			returnsipMessage = (SIPMessage) response;
+		else
+			returnsipMessage = (SIPMessage) request;
+		return returnsipMessage;
 	}
 }

@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 										Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -34,16 +35,6 @@
  */
 package com.mitester.sipserver.sipmessagehandler;
 
-import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_DISPLAY_NAME;
-import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_PORT;
-import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_USER_NAME;
-import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.LOOP_BACK_ADDRESS;
-import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.MAGIC_COOKIES;
-import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.MAXFORWARDS;
-import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.PROTOCOL;
-import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.TO_DISPLAY_NAME;
-import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.TO_PORT;
-import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.TO_USER_NAME;
 import gov.nist.javax.sip.message.MessageFactoryImpl;
 import gov.nist.javax.sip.message.SIPMessage;
 
@@ -66,15 +57,31 @@ import javax.sip.header.ToHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 
+import org.apache.log4j.Logger;
+
 import com.mitester.sipserver.ProcessSIPMessage;
+import com.mitester.utility.MiTesterLog;
+
 import static com.mitester.sipserver.SipServerConstants.SERVER_REQUEST;
+import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_DISPLAY_NAME;
+import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_PORT;
+import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.FROM_USER_NAME;
+import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.LOOP_BACK_ADDRESS;
+import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.MAGIC_COOKIES;
+import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.MAXFORWARDS;
+import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.PROTOCOL;
+import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.TO_DISPLAY_NAME;
+import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.TO_PORT;
+import static com.mitester.sipserver.sipmessagehandler.SIPMessageHandlerConstants.TO_USER_NAME;
 /**
  * A method to send IM (Instant Message) in with or with out the session.
  * 
- * 
- * 
  */
 public class MESSAGERequestHandler {
+	
+	private static final Logger LOGGER = MiTesterLog
+	.getLogger(MESSAGERequestHandler.class.getName());
+	
 	/**
 	 * Generating MESSAGE request
 	 * 
@@ -86,7 +93,7 @@ public class MESSAGERequestHandler {
 	 */
 	public static Request createMESSAGERequest(String dialog) throws NullPointerException,
 	        java.text.ParseException, InvalidArgumentException, SipException {
-
+		LOGGER.info("Generation of MESSAGE Request is started");
 		Request request;
 		SipFactory factory = SipFactory.getInstance();
 		HeaderFactory headerFactory = factory.createHeaderFactory();
@@ -133,7 +140,9 @@ public class MESSAGERequestHandler {
 			callid = sipMsg.getCallId();
 			fromHeader = sipMsg.getFrom();
 			toHeader = sipMsg.getTo();
+			
 		}
+		
 		SipURI requestURI = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
 		        LOOP_BACK_ADDRESS, addressFactory);
 		requestURI.setPort(TO_PORT);
@@ -154,13 +163,11 @@ public class MESSAGERequestHandler {
 		MaxForwardsHeader maxForwards = MessageHandlerHelper
 		        .createMaxForwardsHeader(MAXFORWARDS, headerFactory);
 
-
-
 		// create request
 		request = MessageHandlerHelper.createRequest(requestURI,
 		        Request.MESSAGE, callid, cSeqHeader, fromHeader, toHeader,
 		        viaHeaders, maxForwards, messageFactoryImpl);
-
+		LOGGER.info("Generation of MESSAGE Request is ended");
 		return request;
 	}
 

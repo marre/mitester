@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 										Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -38,7 +39,7 @@ import gov.nist.javax.sip.message.SIPMessage;
 
 import java.text.ParseException;
 import java.util.List;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 import javax.sip.InvalidArgumentException;
 import javax.sip.SipException;
@@ -57,7 +58,7 @@ import com.mitester.utility.MiTesterLog;
 
 public class SIPHeaderRemover {
 	private static final Logger LOGGER = MiTesterLog
-	        .getLogger(SIPHeaderRemover.class.getName());
+			.getLogger(SIPHeaderRemover.class.getName());
 
 	/**
 	 * method called during server test execution for removing headers in the
@@ -69,10 +70,10 @@ public class SIPHeaderRemover {
 	 */
 
 	public static SIPMessage removeHeader(
-	        List<com.mitester.jaxbparser.server.Header> headers,
-	        String SIPmessage, String type) throws SipException,
-	        ParseException, InvalidArgumentException, NullPointerException,
-	        java.lang.IllegalArgumentException {
+			List<com.mitester.jaxbparser.server.Header> headers,
+			String SIPmessage, String type) throws SipException,
+			ParseException, InvalidArgumentException, NullPointerException,
+			java.lang.IllegalArgumentException {
 
 		SIPMessage returnSIPMessage = null;
 		SIPMessage sipmsgconvert = null;
@@ -83,352 +84,386 @@ public class SIPHeaderRemover {
 
 		for (com.mitester.jaxbparser.server.Header header : headers) {
 			String name = header.getName();
-			LOGGER.info("Removing "
-			        + SIPHeaders.getSipHeaderfromString(name.toUpperCase())
-			                .toString()
-			        + " Header From the Request or Response");
+			LOGGER.info("Removing '"
+					+ SIPHeaders.getSipHeaderfromString(name.toUpperCase())
+							.toString()
+					+ "' header from the Request or Response");
 			switch (SIPHeaders.getSipHeaderfromString(name.toUpperCase())) {
 
-				case ACCEPT_ENCODING:
-					returnSIPMessage = AcceptEncodingHeaderHandler
-					        .removeAcceptEncodingHeader(header, sipmsgconvert,
-					                type);
-					break;
-
-				case ACCEPT:
-					returnSIPMessage = AcceptHeaderHanldler.removeAcceptHeader(
-					        header, sipmsgconvert, type);
-					break;
-
-				case ACCEPT_LANGUAGE:
-					returnSIPMessage = AcceptLanguageHeaderHandler
-					        .removeAcceptLangaugeHeader(header, sipmsgconvert,
-					                type);
-					break;
-
-				case ALERT_INFO:
-					returnSIPMessage = AlertInfoHeaderHandler
-					        .removeAlertInfoHeader(header, sipmsgconvert, type);
-					break;
-
-				case ALLOW_EVENTS:
-					returnSIPMessage = AllowEventsHeaderHandler
-					        .removeAllowEventsHeader(header, sipmsgconvert,
-					                type);
-					break;
-
-				case ALLOW:
-					returnSIPMessage = AllowHeaderHandler.removeAllowHeader(
-					        header, sipmsgconvert, type);
-					break;
-
-				case AUTHENTICATION_INFO:
-					returnSIPMessage = AuthenticationInfoHeaderHandler
-					        .removeAuthenticationInfo(header, sipmsgconvert,
-					                type);
-					break;
-
-				case AUTHORIZATION:
-					returnSIPMessage = AuthorizationHeaderHandler
-					        .removeAutherizationHeader(header, sipmsgconvert,
-					                type);
-					break;
-
-				case CALL_ID:
-					returnSIPMessage = CallIdHeaderHandler.removeCallIdHeader(
-					        header, sipmsgconvert, type);
-					break;
-
-				case CALL_INFO:
-					returnSIPMessage = CallInfoHeaderHandler
-					        .removeCallInfoHeader(header, sipmsgconvert, type);
-					break;
-
-				case CONTACT:
-					returnSIPMessage = ContactHeaderHandler
-					        .removeContactHeader(header, sipmsgconvert, type);
-					break;
-
-				case CONTENT_DISPOSITION:
-					returnSIPMessage = ContentDispositionHeaderHandler
-					        .removeContentDispositionHeader(header,
-					                sipmsgconvert, type);
-					break;
-
-				case CONTENT_ENCODING:
-					returnSIPMessage = ContentEncodingHeaderHandler
-					        .removeContentEncodingHeader(header, sipmsgconvert,
-					                type);
-					break;
-
-				case CONTENT_LANGUAGE:
-					returnSIPMessage = ContentLanguageHeaderHandler
-					        .removeContentLanguageHeader(header, sipmsgconvert,
-					                type);
-					break;
-
-				case CONTENT_LENGTH:
-					returnSIPMessage = ContentLengthHeaderHandler
-					        .removeContentLengthHeader(header, sipmsgconvert,
-					                type);
-					break;
-
-				case CONTENT_TYPE:
-					returnSIPMessage = ContentTypeHeaderHandler
-					        .removeContentTypeHeader(header, sipmsgconvert,
-					                type);
-					break;
-
-				case CSEQ:
-					returnSIPMessage = CSeqHeaderHandler.removeCSeqHeader(
-					        header, sipmsgconvert, type);
-					break;
-
-				case DATE:
-					returnSIPMessage = DateHeaderHandler.removeDateHeader(
-					        header, sipmsgconvert, type);
-					break;
-
-				case ERROR_INFO:
-					returnSIPMessage = ErrorInfoHeaderHandler
-					        .removeErrorInfoHeader(header, sipmsgconvert, type);
-					break;
-
-				case EVENT:
-					returnSIPMessage = EventHeaderHandler.removeEventHeader(
-					        header, sipmsgconvert, type);
-					break;
-
-				case EXPIRES:
-
-					returnSIPMessage = ExpiresHeaderHandler
-					        .removeExpiresHeader(header, sipmsgconvert, type);
-					break;
-
-				case FROM:
-					returnSIPMessage = FromHeaderHandler.removeFromHeader(
-					        header, sipmsgconvert, type);
-					break;
-
-				case IN_REPLY_TO:
-					returnSIPMessage = InReplyToHeaderHandler
-					        .removeInReplyToHeader(header, sipmsgconvert, type);
-					break;
-
-				case MAX_FORWARDS:
-					returnSIPMessage = MaxForwardsHeaderHandler
-					        .removeMaxForwardsHeader(header, sipmsgconvert,
-					                type);
-					break;
-
-				case MIME_VERSION:
-					returnSIPMessage = MimeVersionHeaderHandler
-					        .removeMimeVersionHeader(header, sipmsgconvert,
-					                type);
-					break;
-
-				case MIN_SE:
-					returnSIPMessage = MinSEHeaderHandler.removeMinSEHeader(
-					        header, sipmsgconvert, type);
-					break;
-
-				case MIN_EXPIRES:
-					returnSIPMessage = MinExpiresHeaderHandler
-					        .removeMinExpiresHeader(header, sipmsgconvert, type);
-					break;
-
-				case ORGANIZATION:
-					returnSIPMessage = OrganizationHeaderHandler
-					        .removeOrganizationHeader(header, sipmsgconvert,
-					                type);
-					break;
-
-				case PRIORITY:
-					returnSIPMessage = PriorityHeaderHandler
-					        .removePriorityHeader(header, sipmsgconvert, type);
-					break;
-
-				case PRIVACY:
-					returnSIPMessage = PrivacyHeaderHandler
-					        .removePrivacyHeader(header, sipmsgconvert, type);
-					break;
-
-				case PROXY_AUTHENTICATE:
-					returnSIPMessage = ProxyAuthenticateHeaderHandler
-					        .removeProxyAuthenticateHeader(header,
-					                sipmsgconvert, type);
-					break;
-
-				case PROXY_AUTHORIZATION:
-					returnSIPMessage = ProxyAuthorizationHeaderHandler
-					        .removeProxyAuthorizationHeader(header,
-					                sipmsgconvert, type);
-					break;
-
-				case PROXY_REQUIRE:
-					returnSIPMessage = ProxyRequireHeaderHandler
-					        .removeProxyRequireHeader(header, sipmsgconvert,
-					                type);
-					break;
-
-				case RACK:
-					returnSIPMessage = RAckHeaderHandler.removeRAckHeader(
-					        header, sipmsgconvert, type);
-					break;
-
-				case REASON:
-					returnSIPMessage = ReasonHeaderHandler.removeReasonHeader(
-					        header, sipmsgconvert, type);
-					break;
-
-				case RECORD_ROUTE:
-					returnSIPMessage = RecordRouteHeaderHandler
-					        .removeRecordRouteHeader(header, sipmsgconvert,
-					                type);
-					break;
-
-				case REFER_TO:
-					returnSIPMessage = ReferToHeaderHandler
-					        .removeReferToHeader(header, sipmsgconvert, type);
-					break;
-
-				case REFERRED_BY:
-					returnSIPMessage = ReferredByHeaderHandler
-					        .removeReferredByHeader(header, sipmsgconvert, type);
-					break;
-
-				case REPLACES:
-					returnSIPMessage = ReplacesHeaderHandler
-					        .removeReplacesHeader(header, sipmsgconvert, type);
-					break;
-
-				case SECURITY_CLIENT:
-					returnSIPMessage = SecurityClientHeaderHandler
-					        .removeSecurityClientHeader(header, sipmsgconvert,
-					                type);
-					break;
-
-				case SECURITY_SERVER:
-					returnSIPMessage = SecurityServerHeaderHandler
-					        .removeSecurityServerHeader(header, sipmsgconvert,
-					                type);
-					break;
-
-				case SECURITY_VERIFY:
-					returnSIPMessage = SecurityVerifyHeaderHandler
-					        .removeSecurityVerifyHeader(header, sipmsgconvert,
-					                type);
-					break;
-
-				case SERVICE_ROUTE:
-					returnSIPMessage = ServiceRouteHeaderHandler
-					        .removeServiceRouteHeader(header, sipmsgconvert,
-					                type);
-					break;
-
-				case SESSION_EXPIRES:
-					returnSIPMessage = SessionExpiresHeaderHandler
-					        .removeSessionExpiresHeader(header, sipmsgconvert,
-					                type);
-					break;
-
-				case REPLY_TO:
-					returnSIPMessage = ReplyToHeaderHandler
-					        .removeReplyToHeader(header, sipmsgconvert, type);
-					break;
-
-				case REQUIRE:
-					returnSIPMessage = RequireHeaderHandler
-					        .removeRequireHeader(header, sipmsgconvert, type);
-					break;
-
-				case RETRY_AFTER:
-					returnSIPMessage = RetryAfterHeaderHandler
-					        .removeRetryAfterHeader(header, sipmsgconvert, type);
-					break;
-
-				case ROUTE:
-					returnSIPMessage = RouteHeaderHandler.removeRouteHeader(
-					        header, sipmsgconvert, type);
-					break;
-
-				case RSEQ:
-					returnSIPMessage = RSeqHeaderHandler.removeRSeqHeader(
-					        header, sipmsgconvert, type);
-					break;
-
-				case SERVER:
-					returnSIPMessage = ServerHeaderHandler.removeServerHeader(
-					        header, sipmsgconvert, type);
-					break;
-
-				case SIP_ETAG:
-					returnSIPMessage = SIPETagHeaderHandler
-					        .removeSIPETagHeader(header, sipmsgconvert, type);
-					break;
-
-				case SIP_IF_MATCH:
-					returnSIPMessage = SIPIfMatchHeaderHandler
-					        .removeSIPIfMatchHeader(header, sipmsgconvert, type);
-					break;
-
-				case SUBJECT:
-					returnSIPMessage = SubjectHeaderHandler
-					        .removeSubjectHeader(header, sipmsgconvert, type);
-					break;
-
-				case SUBSCRIPTION_STATE:
-					returnSIPMessage = SubscriptionStateHeaderHandler
-					        .removeSubscriptionStateHeader(header,
-					                sipmsgconvert, type);
-					break;
-
-				case SUPPORTED:
-					returnSIPMessage = SupportedHeaderHandler
-					        .removeSupportedHeader(header, sipmsgconvert, type);
-					break;
-
-				case TIMESTAMP:
-					returnSIPMessage = TimeStampHeaderHandler
-					        .removeTimeStampHeader(header, sipmsgconvert, type);
-					break;
-
-				case TO:
-					returnSIPMessage = ToHeaderHandler.removeToHeader(header,
-					        sipmsgconvert, type);
-					break;
-
-				case UNSUPPORTED:
-					returnSIPMessage = UnsupportedHeaderHandler
-					        .removeUnsupportedHeader(header, sipmsgconvert,
-					                type);
-					break;
-
-				case USER_AGENT:
-					returnSIPMessage = UserAgentHeaderHandler
-					        .removeUserAgentHeader(header, sipmsgconvert, type);
-					break;
-
-				case VIA:
-					returnSIPMessage = ViaHeaderHandler.removeViaHeader(header,
-					        sipmsgconvert, type);
-					break;
-
-				case WARNING:
-					returnSIPMessage = WarningHeaderHandler
-					        .removeWarningHeader(header, sipmsgconvert, type);
-					break;
-
-				case WWW_AUTHENTICATE:
-					returnSIPMessage = WWWAuthenticateHeaderHandler
-					        .removeWWWAuthenticate(header, sipmsgconvert, type);
-					break;
-
-				case CUSTOM:
-
+			case ACCEPT_ENCODING:
+				returnSIPMessage = AcceptEncodingHeaderHandler
+						.removeAcceptEncodingHeader(header, sipmsgconvert, type);
+				break;
+
+			case ACCEPT:
+				returnSIPMessage = AcceptHeaderHanldler.removeAcceptHeader(
+						header, sipmsgconvert, type);
+				break;
+
+			case ACCEPT_LANGUAGE:
+				returnSIPMessage = AcceptLanguageHeaderHandler
+						.removeAcceptLangaugeHeader(header, sipmsgconvert, type);
+				break;
+
+			case ALERT_INFO:
+				returnSIPMessage = AlertInfoHeaderHandler
+						.removeAlertInfoHeader(header, sipmsgconvert, type);
+				break;
+
+			case ALLOW_EVENTS:
+				returnSIPMessage = AllowEventsHeaderHandler
+						.removeAllowEventsHeader(header, sipmsgconvert, type);
+				break;
+
+			case ALLOW:
+				returnSIPMessage = AllowHeaderHandler.removeAllowHeader(header,
+						sipmsgconvert, type);
+				break;
+
+			case AUTHENTICATION_INFO:
+				returnSIPMessage = AuthenticationInfoHeaderHandler
+						.removeAuthenticationInfo(header, sipmsgconvert, type);
+				break;
+
+			case AUTHORIZATION:
+				returnSIPMessage = AuthorizationHeaderHandler
+						.removeAutherizationHeader(header, sipmsgconvert, type);
+				break;
+
+			case CALL_ID:
+				returnSIPMessage = CallIdHeaderHandler.removeCallIdHeader(
+						header, sipmsgconvert, type);
+				break;
+
+			case CALL_INFO:
+				returnSIPMessage = CallInfoHeaderHandler.removeCallInfoHeader(
+						header, sipmsgconvert, type);
+				break;
+
+			case CONTACT:
+				returnSIPMessage = ContactHeaderHandler.removeContactHeader(
+						header, sipmsgconvert, type);
+				break;
+
+			case CONTENT_DISPOSITION:
+				returnSIPMessage = ContentDispositionHeaderHandler
+						.removeContentDispositionHeader(header, sipmsgconvert,
+								type);
+				break;
+
+			case CONTENT_ENCODING:
+				returnSIPMessage = ContentEncodingHeaderHandler
+						.removeContentEncodingHeader(header, sipmsgconvert,
+								type);
+				break;
+
+			case CONTENT_LANGUAGE:
+				returnSIPMessage = ContentLanguageHeaderHandler
+						.removeContentLanguageHeader(header, sipmsgconvert,
+								type);
+				break;
+
+			case CONTENT_LENGTH:
+				returnSIPMessage = ContentLengthHeaderHandler
+						.removeContentLengthHeader(header, sipmsgconvert, type);
+				break;
+
+			case CONTENT_TYPE:
+				returnSIPMessage = ContentTypeHeaderHandler
+						.removeContentTypeHeader(header, sipmsgconvert, type);
+				break;
+
+			case CSEQ:
+				returnSIPMessage = CSeqHeaderHandler.removeCSeqHeader(header,
+						sipmsgconvert, type);
+				break;
+
+			case DATE:
+				returnSIPMessage = DateHeaderHandler.removeDateHeader(header,
+						sipmsgconvert, type);
+				break;
+
+			case ERROR_INFO:
+				returnSIPMessage = ErrorInfoHeaderHandler
+						.removeErrorInfoHeader(header, sipmsgconvert, type);
+				break;
+
+			case EVENT:
+				returnSIPMessage = EventHeaderHandler.removeEventHeader(header,
+						sipmsgconvert, type);
+				break;
+
+			case EXPIRES:
+
+				returnSIPMessage = ExpiresHeaderHandler.removeExpiresHeader(
+						header, sipmsgconvert, type);
+				break;
+
+			case FROM:
+				returnSIPMessage = FromHeaderHandler.removeFromHeader(header,
+						sipmsgconvert, type);
+				break;
+
+			case IN_REPLY_TO:
+				returnSIPMessage = InReplyToHeaderHandler
+						.removeInReplyToHeader(header, sipmsgconvert, type);
+				break;
+
+			case MAX_FORWARDS:
+				returnSIPMessage = MaxForwardsHeaderHandler
+						.removeMaxForwardsHeader(header, sipmsgconvert, type);
+				break;
+
+			case MIME_VERSION:
+				returnSIPMessage = MimeVersionHeaderHandler
+						.removeMimeVersionHeader(header, sipmsgconvert, type);
+				break;
+
+			case MIN_SE:
+				returnSIPMessage = MinSEHeaderHandler.removeMinSEHeader(header,
+						sipmsgconvert, type);
+				break;
+
+			case MIN_EXPIRES:
+				returnSIPMessage = MinExpiresHeaderHandler
+						.removeMinExpiresHeader(header, sipmsgconvert, type);
+				break;
+
+			case ORGANIZATION:
+				returnSIPMessage = OrganizationHeaderHandler
+						.removeOrganizationHeader(header, sipmsgconvert, type);
+				break;
+
+			case PRIORITY:
+				returnSIPMessage = PriorityHeaderHandler.removePriorityHeader(
+						header, sipmsgconvert, type);
+				break;
+
+			case PRIVACY:
+				returnSIPMessage = PrivacyHeaderHandler.removePrivacyHeader(
+						header, sipmsgconvert, type);
+				break;
+
+			case PROXY_AUTHENTICATE:
+				returnSIPMessage = ProxyAuthenticateHeaderHandler
+						.removeProxyAuthenticateHeader(header, sipmsgconvert,
+								type);
+				break;
+
+			case PROXY_AUTHORIZATION:
+				returnSIPMessage = ProxyAuthorizationHeaderHandler
+						.removeProxyAuthorizationHeader(header, sipmsgconvert,
+								type);
+				break;
+
+			case PROXY_REQUIRE:
+				returnSIPMessage = ProxyRequireHeaderHandler
+						.removeProxyRequireHeader(header, sipmsgconvert, type);
+				break;
+
+			case RACK:
+				returnSIPMessage = RAckHeaderHandler.removeRAckHeader(header,
+						sipmsgconvert, type);
+				break;
+
+			case REASON:
+				returnSIPMessage = ReasonHeaderHandler.removeReasonHeader(
+						header, sipmsgconvert, type);
+				break;
+
+			case RECORD_ROUTE:
+				returnSIPMessage = RecordRouteHeaderHandler
+						.removeRecordRouteHeader(header, sipmsgconvert, type);
+				break;
+
+			case REFER_TO:
+				returnSIPMessage = ReferToHeaderHandler.removeReferToHeader(
+						header, sipmsgconvert, type);
+				break;
+
+			case REFERRED_BY:
+				returnSIPMessage = ReferredByHeaderHandler
+						.removeReferredByHeader(header, sipmsgconvert, type);
+				break;
+
+			case REPLACES:
+				returnSIPMessage = ReplacesHeaderHandler.removeReplacesHeader(
+						header, sipmsgconvert, type);
+				break;
+
+			case SECURITY_CLIENT:
+				returnSIPMessage = SecurityClientHeaderHandler
+						.removeSecurityClientHeader(header, sipmsgconvert, type);
+				break;
+
+			case SECURITY_SERVER:
+				returnSIPMessage = SecurityServerHeaderHandler
+						.removeSecurityServerHeader(header, sipmsgconvert, type);
+				break;
+
+			case SECURITY_VERIFY:
+				returnSIPMessage = SecurityVerifyHeaderHandler
+						.removeSecurityVerifyHeader(header, sipmsgconvert, type);
+				break;
+
+			case SERVICE_ROUTE:
+				returnSIPMessage = ServiceRouteHeaderHandler
+						.removeServiceRouteHeader(header, sipmsgconvert, type);
+				break;
+
+			case SESSION_EXPIRES:
+				returnSIPMessage = SessionExpiresHeaderHandler
+						.removeSessionExpiresHeader(header, sipmsgconvert, type);
+				break;
+
+			case REPLY_TO:
+				returnSIPMessage = ReplyToHeaderHandler.removeReplyToHeader(
+						header, sipmsgconvert, type);
+				break;
+
+			case REQUIRE:
+				returnSIPMessage = RequireHeaderHandler.removeRequireHeader(
+						header, sipmsgconvert, type);
+				break;
+
+			case RETRY_AFTER:
+				returnSIPMessage = RetryAfterHeaderHandler
+						.removeRetryAfterHeader(header, sipmsgconvert, type);
+				break;
+
+			case ROUTE:
+				returnSIPMessage = RouteHeaderHandler.removeRouteHeader(header,
+						sipmsgconvert, type);
+				break;
+
+			case RSEQ:
+				returnSIPMessage = RSeqHeaderHandler.removeRSeqHeader(header,
+						sipmsgconvert, type);
+				break;
+
+			case SERVER:
+				returnSIPMessage = ServerHeaderHandler.removeServerHeader(
+						header, sipmsgconvert, type);
+				break;
+
+			case SIP_ETAG:
+				returnSIPMessage = SIPETagHeaderHandler.removeSIPETagHeader(
+						header, sipmsgconvert, type);
+				break;
+
+			case SIP_IF_MATCH:
+				returnSIPMessage = SIPIfMatchHeaderHandler
+						.removeSIPIfMatchHeader(header, sipmsgconvert, type);
+				break;
+
+			case SUBJECT:
+				returnSIPMessage = SubjectHeaderHandler.removeSubjectHeader(
+						header, sipmsgconvert, type);
+				break;
+
+			case SUBSCRIPTION_STATE:
+				returnSIPMessage = SubscriptionStateHeaderHandler
+						.removeSubscriptionStateHeader(header, sipmsgconvert,
+								type);
+				break;
+
+			case SUPPORTED:
+				returnSIPMessage = SupportedHeaderHandler
+						.removeSupportedHeader(header, sipmsgconvert, type);
+				break;
+
+			case TIMESTAMP:
+				returnSIPMessage = TimeStampHeaderHandler
+						.removeTimeStampHeader(header, sipmsgconvert, type);
+				break;
+
+			case TO:
+				returnSIPMessage = ToHeaderHandler.removeToHeader(header,
+						sipmsgconvert, type);
+				break;
+
+			case UNSUPPORTED:
+				returnSIPMessage = UnsupportedHeaderHandler
+						.removeUnsupportedHeader(header, sipmsgconvert, type);
+				break;
+
+			case USER_AGENT:
+				returnSIPMessage = UserAgentHeaderHandler
+						.removeUserAgentHeader(header, sipmsgconvert, type);
+				break;
+
+			case VIA:
+				returnSIPMessage = ViaHeaderHandler.removeViaHeader(header,
+						sipmsgconvert, type);
+				break;
+
+			case WARNING:
+				returnSIPMessage = WarningHeaderHandler.removeWarningHeader(
+						header, sipmsgconvert, type);
+				break;
+
+			case WWW_AUTHENTICATE:
+				returnSIPMessage = WWWAuthenticateHeaderHandler
+						.removeWWWAuthenticate(header, sipmsgconvert, type);
+				break;
+				
+			case P_ACCESS_NETWORK_INFO:
+				returnSIPMessage = PAccessNetworkInfoHeaderHandler
+						.removePAccessNetworkInfoHeader(header, sipmsgconvert,
+								type);
+				break;
+				
+			case P_ASSERTED_IDENTITY:
+				returnSIPMessage = PAssertedIdentityHeaderHandler
+						.removePAssertedIdentityHeader(header, sipmsgconvert,
+								type);
+				break;
+				
+			case P_ASSOCIATED_URI:
+				returnSIPMessage = PAssociatedURIHeaderHandler
+						.removePAssociatedURIHeader(header, sipmsgconvert, type);
+				break;
+			case P_CALLED_PARTY_ID:
+				returnSIPMessage = PCalledPartyIDHeaderHandler
+						.removePCalledPartyIDHeader(header, sipmsgconvert, type);
+				break;
+				
+			case P_CHARGING_FUNCTION_ADDRESSES:
+				returnSIPMessage = PChargingFunctionAddressHeaderHandler
+						.removePChargingFunctionAddressesHeader(header,
+								sipmsgconvert, type);
+				break;
+				
+			case P_CHARGING_VECTOR:
+				returnSIPMessage = PChargingVectorHeaderHandler
+						.removePChargingVectorHeader(header, sipmsgconvert,
+								type);
+				break;
+				
+			case P_MEDIA_AUTHORIZATION:
+				returnSIPMessage = PMediaAuthorizationHeaderHandler
+						.removePMediaAuthorizationHeader(header, sipmsgconvert,
+								type);
+				break;
+				
+			case P_PREFERRED_IDENTITY:
+				returnSIPMessage = PPreferredIdentityHeaderHandler
+						.removePPreferredIdentityHeader(header, sipmsgconvert,
+								type);
+				break;
+				
+			case P_VISITED_NETWORK_ID:
+				returnSIPMessage = PVisitedNetworkIDHeaderHandler
+						.removePVisitedNetworkIDHeader(header, sipmsgconvert,
+								type);
+				break;
+				
+			case JOIN:
+				returnSIPMessage = JoinHeaderHandler.removeJoinHeader(header,
+						sipmsgconvert, type);
+				break;
 			}
 		}
 		return returnSIPMessage;
-
 	}
 }

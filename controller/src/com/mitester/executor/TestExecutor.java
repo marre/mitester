@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 					License 											Details
+ * Package 						License 											Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 			NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 					The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -32,25 +33,28 @@
  */
 package com.mitester.executor;
 
-import static com.mitester.executor.ExecutorConstants.TEST_MODE;
+import static com.mitester.executor.ExecutorConstants.COMMA_SEPARATOR;
+import static com.mitester.executor.ExecutorConstants.MITESTER_MODE;
 import static com.mitester.utility.ConfigurationProperties.CONFIG_INSTANCE;
+import static com.mitester.utility.UtilityConstants.NORMAL;
+import static com.mitester.utility.UtilityConstants.CALL_FLOW_MODE;
 
-import java.io.File;
-import java.io.IOException;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
+
+import org.apache.log4j.Logger;
 
 import com.mitester.adapter.Adapter;
-import com.mitester.sipserver.SIPHeaderValidator;
+import com.mitester.utility.ConsoleReader;
 import com.mitester.utility.MiTesterLog;
 import com.mitester.utility.TestMode;
 import com.mitester.utility.TestResult;
 import com.mitester.utility.TestUtility;
+import com.mitester.utility.ThreadControl;
 
 /**
  * 
@@ -67,35 +71,54 @@ public class TestExecutor {
 
 	private ExecutorService serverExecutors = Executors.newCachedThreadPool();
 
+	private ExecutorService consoleExecutors = Executors.newCachedThreadPool();
+
 	private ClientScriptRunner runClientTests = null;
 
 	private ServerScriptRunner runServerTests = null;
 
-	private CountDownLatch clientLatch = null;
+	private ConsoleReader consoleReader = null;
 
-	private CountDownLatch serverLatch = null;
+	private CountDownLatch doneClientTest = null;
+
+	private CountDownLatch doneServerTest = null;
 
 	private Adapter sipAdapter = null;
 
 	private boolean isClientExist = false;
 
-	private static final String FILE_SEPARATOR = System
-			.getProperty("file.separator");
+	private boolean isCompleted = false;
+
+	private int totalTestCount = 0;
+
+	private int executedTestCount = 0;
+
+	private int passCount = 0;
+
+	private volatile StringBuilder failString = null;
+
+	private volatile boolean isValidationFailed = false;
+
+	private ThreadControl threadControl = null;
 
 	/**
 	 * initialize the variables
 	 * 
 	 */
-	public TestExecutor(Adapter sipAdapter,
-			SIPHeaderValidator sipHeaderValidator) {
+	public TestExecutor(Adapter sipAdapter, ThreadControl threadControl) {
 
 		this.sipAdapter = sipAdapter;
+
+		this.threadControl = threadControl;
 
 		// initialize the ClientScriptRunner
 		runClientTests = new ClientScriptRunner(sipAdapter, this);
 
 		// initialize the ServerScriptRunner
-		runServerTests = new ServerScriptRunner(sipHeaderValidator, this);
+		runServerTests = new ServerScriptRunner(this, threadControl);
+
+		// initialize the ConsoleReader
+		consoleReader = new ConsoleReader(this, threadControl);
 
 	}
 
@@ -103,20 +126,39 @@ public class TestExecutor {
 	 * execute the test scripts
 	 * 
 	 * @param clientTests
-	 *            is a com.mitester.jaxbparser.client.TEST includes set of
-	 *            client Tests and its actions
+	 *            is a List of com.mitester.jaxbparser.client.TEST's includes
+	 *            set of client Tests and its actions
 	 * @param serverTests
-	 *            is a com.mitester.jaxbparser.server.TEST includes set of
-	 *            server Tests and its actions
+	 *            is a List of com.mitester.jaxbparser.server.TEST's includes
+	 *            set of server Tests and its actions
+	 * @throws InterruptedException
 	 */
 
 	public void executeTest(
 			List<com.mitester.jaxbparser.client.TEST> clientTests,
-			List<com.mitester.jaxbparser.server.TEST> serverTests) {
+			List<com.mitester.jaxbparser.server.TEST> serverTests)
+			throws InterruptedException {
+
+		LOGGER.info("entered into executeTest");
+
+		// start reading message from the console
+		serverExecutors.execute(consoleReader.readConsoleMessages());
 
 		switch (TestMode.getTestModefromString(CONFIG_INSTANCE
-				.getValue(TEST_MODE))) {
+				.getValue(MITESTER_MODE))) {
 		case ADVANCED: {
+
+			// count number of client tests
+			totalTestCount = clientTests.size();
+
+			for (com.mitester.jaxbparser.client.TEST clientTest : clientTests) {
+
+				BigInteger count = clientTest.getCOUNT();
+
+				if (count != null) {
+					totalTestCount = totalTestCount + (count.intValue() - 1);
+				}
+			}
 
 			// Execute both client and server Tests
 			executeAdvancedTest(clientTests, serverTests);
@@ -125,6 +167,17 @@ public class TestExecutor {
 		}
 		case USER: {
 
+			// count number of server tests
+			totalTestCount = serverTests.size();
+
+			for (com.mitester.jaxbparser.server.TEST serverTest : serverTests) {
+
+				BigInteger count = serverTest.getCOUNT();
+
+				if (count != null) {
+					totalTestCount = totalTestCount + (count.intValue() - 1);
+				}
+			}
 			// execute server test
 			executeUserTest(serverTests);
 			break;
@@ -135,30 +188,46 @@ public class TestExecutor {
 		if (isClientExist && sipAdapter.isConnected()) {
 			LOGGER
 					.info("stopping client as all the test executions are completed");
-			sipAdapter.stop();
+
+			if (sipAdapter.stop())
+				LOGGER.info("SUT is closed");
+			else
+				LOGGER.info("closing or stopping SUT is failed");
+
 		} else {
-
 			// remove shell if exist
-			removeShell();
-
+			TestUtility.removeShell();
 		}
+
+		isCompleted = true;
+
+		// stop reading message from the console
+		shutdownConsoleExecutor();
+
 		// shut down the thread execution
 		shutdownClientExecutor();
+
 		shutdownServerExecutor();
+
 		shutDownClientTimerExecutor();
+
 		shutDownServerTimerExecutor();
+
+		runServerTests.shutDownRtpExecutors();
+
+		runServerTests.shutDownRtcpExecutors();
 
 	}
 
 	/**
-	 * execute the ADVANCED mode of test scripts
+	 * execute the test scripts in ADVANCED mode
 	 * 
 	 * @param clientTests
-	 *            is a com.mitester.jaxbparser.client.TEST includes set of
-	 *            client Tests and its actions
+	 *            List of client Tests which consists of set of client Tests and
+	 *            its actions
 	 * @param serverTests
-	 *            is a com.mitester.jaxbparser.server.TEST includes set of
-	 *            server Tests and its actions
+	 *            List of server Tests which consists of set of server Tests and
+	 *            its actions
 	 */
 
 	private void executeAdvancedTest(
@@ -167,15 +236,38 @@ public class TestExecutor {
 
 		try {
 
-			LOGGER.info("miTester running in ADVANCED mode");
+			LOGGER.info("miTesterforSIP running in ADVANCED mode");
+			TestUtility.printMessage(NORMAL,
+					"miTesterforSIP running in ADVANCED mode");
+
+			boolean isExecutionFailed = false;
 
 			for (com.mitester.jaxbparser.client.TEST clientTest : clientTests) {
 
+				boolean isSuccess = false;
+
+				boolean setFail = false;
+
+				if (threadControl.getStopExecution())
+					threadControl.stopExecution();
+
+				// takes the thread control
+				if (threadControl.isThreadStop()) {
+					TestUtility.printMessage(NORMAL,
+							"Press 'p' + ENTER key to resume the execution");
+					threadControl.take();
+				} else
+					threadControl.take();
+
 				String clientTestID = clientTest.getTESTID();
-				TestUtility.printMessage(clientTestID + " Started");
+				TestUtility.printMessage(NORMAL, clientTestID + " Started");
 				LOGGER.info(clientTestID + " Started");
-				
-				boolean isExecutionFailed = false;
+
+				// set Test ID
+				TestResult.setTestID(clientTestID);
+
+				// set call flow
+				TestUtility.callFlow();
 
 				BigInteger count = clientTest.getCOUNT();
 
@@ -186,30 +278,39 @@ public class TestExecutor {
 				}
 
 				for (int i = 0; i < loopCount; i++) {
-					
-					clientLatch = new CountDownLatch(1);
-					serverLatch = new CountDownLatch(1);
+
+					// initialize the test executors
+					InitTestExecutors();
+
+					isSuccess = false;
+
+					if (!isClientExist) {
+
+						// suspend the server execution until SUT gets started
+						threadControl.suspend();
+
+						// start the check timer
+						threadControl.startCheckTimer();
+					}
 
 					for (com.mitester.jaxbparser.server.TEST serverTest : serverTests) {
 
 						String serverTestID = serverTest.getTESTID();
 						if (clientTestID.equals(serverTestID)) {
-
 							serverExecutors.execute(runServerTests
 									.frameServerRunnable(serverTest));
 							break;
 						}
-
 					}
 
 					clientExecutors.execute(runClientTests
 							.frameClientRunnable(clientTest));
 
-					// waiting for client test to get finish
-					clientLatch.await();
+					// wait for client test complete
+					doneClientTest.await();
 
-					// waiting for server test to get finish
-					serverLatch.await();
+					// wait for server test complete
+					doneServerTest.await();
 
 					if ((!runClientTests.getClientTestStart())
 							|| (!runServerTests.getServerTestStart())) {
@@ -217,81 +318,132 @@ public class TestExecutor {
 						break;
 					}
 
-					if (sipAdapter.isClosed()) {
-
-						// clean up the socket
-						sipAdapter.cleanUpSocket();
-					}
-
 					// update test result
 					if ((runClientTests.getClientTestResult())
 							&& (runServerTests.getServerTestResult())) {
+
 						TestResult.updateResult(clientTestID, true);
-						if (!sipAdapter.checkClientAvailability()) {
+
+						if (!sipAdapter.checkClientAvailable()) {
+
 							// clean up the socket
 							sipAdapter.cleanUpSocket();
 							isClientExist = false;
-							
-						} else {
+
+						} else
 							isClientExist = true;
-						}
+
+						if (!setFail)
+							isSuccess = true;
+
+						passCount++;
 
 					} else {
+
 						TestResult.updateResult(clientTestID, false);
-						LOGGER.info("check whether client stopped or not");
 
 						if (!sipAdapter.isClosed() && sipAdapter.isStopCalled()) {
 
-							TestUtility
-									.printMessage("Error while stopping the Client");
+							TestUtility.printMessage("Failed to kill the SUT");
+							LOGGER.error("Failed to kill the SUT");
 							isExecutionFailed = true;
-                           break;
+							break;
+						} else if (!sipAdapter.isClosed()
+								&& !sipAdapter.isStopCalled()) {
+
+							if (!sipAdapter.checkClientAvailable()) {
+
+								// clean up the socket
+								sipAdapter.cleanUpSocket();
+								isClientExist = false;
+
+							} else
+								isClientExist = true;
+
+						} else if (sipAdapter.isClosed()) {
+
+							// clean up the socket
+							sipAdapter.cleanUpSocket();
+							isClientExist = false;
+							LOGGER.info("SUT does not exist");
 						}
 
+						if (TestUtility.getModeOfDisplay().equalsIgnoreCase(
+								CALL_FLOW_MODE))
+							TestUtility.printMessage(NORMAL, "");
 					}
 
-				}
-				
-				if(isExecutionFailed)
-					break;
+					executedTestCount++;
 
-				TestUtility.printMessage(clientTestID + " Ended");
-				LOGGER.info(clientTestID + " Stopped");
+					if ((loopCount > 1) && (!isSuccess))
+						setFail = true;
+
+					failString = null;
+				}
+
+				if (isSuccess)
+					TestUtility.printMessage(NORMAL, clientTestID
+							+ " Ended PASS");
+				else
+					TestUtility.printMessage(NORMAL, clientTestID
+							+ " Ended FAIL");
+
+				LOGGER.info(clientTestID + " Ended");
+
+				if (isExecutionFailed) {
+
+					// clean up the socket
+					sipAdapter.cleanUpSocket();
+
+					break;
+				}
 
 			}
 
 		} catch (NullPointerException ex) {
-			TestUtility.printError("Error while executing client test ", ex);
+			TestUtility.printError(
+					"Error while executing tests in Advanced mode", ex);
 		} catch (InterruptedException ex) {
-			TestUtility.printError("Error while executing client test ", ex);
+			TestUtility.printError(
+					"Error while executing tests in Advanced mode ", ex);
 		} catch (RuntimeException ex) {
-			TestUtility.printError("Error while executing client test ", ex);
+			TestUtility.printError(
+					"Error while executing tests in Advanced mode ", ex);
 		} catch (Exception ex) {
-			TestUtility.printError("Error while executing client test ", ex);
+			TestUtility.printError(
+					"Error while executing tests in Advanced mode ", ex);
 		}
 	}
 
 	/**
-	 * execute the USER mode of Test scripts
+	 * execute the test scripts in USER mode
 	 * 
 	 * @param serverTests
-	 *            is a com.mitester.jaxbparser.server.TEST includes set of
-	 *            server Tests and its actions
+	 *            List of server Tests which consists of set of server Tests and
+	 *            its actions
 	 */
 	private void executeUserTest(
 			List<com.mitester.jaxbparser.server.TEST> serverTests) {
 
 		try {
 
-			LOGGER.info("miTester running in USER mode");
-			
+			LOGGER.info("miTesterforSIP running in USER mode");
+			TestUtility.printMessage(NORMAL,
+					"miTesterforSIP running in USER mode");
+
 			boolean isExecutionFailed = false;
 
 			for (com.mitester.jaxbparser.server.TEST serverTest : serverTests) {
 
+				boolean isSuccess = false;
+
+				boolean setFail = false;
+
 				String serverTestID = serverTest.getTESTID();
-				TestUtility.printMessage(serverTestID + " Started");
+				TestUtility.printMessage(NORMAL, serverTestID + " Started");
 				LOGGER.info(serverTestID + " Started");
+
+				TestUtility.callFlow();
 
 				BigInteger count = serverTest.getCOUNT();
 
@@ -303,15 +455,21 @@ public class TestExecutor {
 
 				for (int i = 0; i < loopCount; i++) {
 
-					serverLatch = new CountDownLatch(1);
+					// initialize the test executors
+					InitTestExecutors();
+
+					isSuccess = false;
+
+					doneServerTest = new CountDownLatch(1);
+
 					serverExecutors.execute(runServerTests
 							.frameServerRunnable(serverTest));
 
 					// waiting for server thread to get finish
-					serverLatch.await();
+					doneServerTest.await();
 
 					if (!runServerTests.getServerTestStart()) {
-						isExecutionFailed= true;
+						isExecutionFailed = true;
 						break;
 					}
 
@@ -320,52 +478,81 @@ public class TestExecutor {
 
 						TestResult.updateResult(serverTestID, true);
 
+						if (!setFail)
+							isSuccess = true;
+
+						passCount++;
+
 					} else {
 						TestResult.updateResult(serverTestID, false);
+
+						if (TestUtility.getModeOfDisplay().equalsIgnoreCase(
+								CALL_FLOW_MODE))
+							TestUtility.printMessage(NORMAL, "");
 					}
 
+					executedTestCount++;
+
+					if ((loopCount > 1) && (!isSuccess))
+						setFail = true;
+
+					failString = null;
 				}
-				
-				if(isExecutionFailed)
+
+				if (isExecutionFailed)
 					break;
-				
-				TestUtility.printMessage(serverTestID + " Ended");
-				LOGGER.info(serverTestID + " Stopped");
+
+				if (isSuccess)
+					TestUtility.printMessage(NORMAL, serverTestID
+							+ " Ended PASS");
+				else
+					TestUtility.printMessage(NORMAL, serverTestID
+							+ " Ended FAIL");
+
+				LOGGER.info(serverTestID + " Ended");
 
 			}
 
 		} catch (NullPointerException ex) {
-			TestUtility.printError("Error while executing server test ", ex);
+			TestUtility.printError("Error while executing tests in User mode",
+					ex);
 		} catch (InterruptedException ex) {
-			TestUtility.printError("Error while executing server test ", ex);
+			TestUtility.printError("Error while executing tests in User mode",
+					ex);
 		} catch (RuntimeException ex) {
-			TestUtility.printError("Error while executing server test ", ex);
+			TestUtility.printError("Error while executing tests in User mode",
+					ex);
 		} catch (Exception ex) {
-			TestUtility.printError("Error while executing server test ", ex);
+			TestUtility.printError("Error while executing tests in User mode",
+					ex);
 		}
 	}
 
 	/**
 	 * 
-	 * @return client Test count down latch object
+	 * @return client count down latch
 	 */
 
-	public CountDownLatch getClientCountDownLatch() {
-		return clientLatch;
+	public CountDownLatch getClientTestCountDownLatch() {
+		return doneClientTest;
 	}
 
 	/**
 	 * 
-	 * @return server Test count down latch object
+	 * @return server count down latch
 	 */
-	public CountDownLatch getServerCountDownLatch() {
-		return serverLatch;
+
+	public CountDownLatch getServerTestCountDownLatch() {
+		return doneServerTest;
 	}
 
 	/**
 	 * shut down the client thread execution
 	 */
 	private void shutdownClientExecutor() {
+
+		LOGGER.info("called shutdownClientExecutor");
+
 		try {
 			clientExecutors.shutdownNow();
 			clientExecutors.awaitTermination(3, TimeUnit.SECONDS);
@@ -377,6 +564,9 @@ public class TestExecutor {
 	 * shut down the server thread execution
 	 */
 	private void shutdownServerExecutor() {
+
+		LOGGER.info("called shutdownServerExecutor");
+
 		try {
 			serverExecutors.shutdownNow();
 			serverExecutors.awaitTermination(3, TimeUnit.SECONDS);
@@ -387,9 +577,26 @@ public class TestExecutor {
 	}
 
 	/**
+	 * shutdown console executor
+	 */
+	private void shutdownConsoleExecutor() {
+
+		LOGGER.info("called shutdownConsoleExecutor");
+
+		try {
+			consoleExecutors.shutdownNow();
+			consoleExecutors.awaitTermination(3, TimeUnit.SECONDS);
+		} catch (InterruptedException e) {
+
+		}
+	}
+
+	/**
 	 * shut down the client timer thread execution
 	 */
 	private void shutDownClientTimerExecutor() {
+
+		LOGGER.info("called shutDownClientTimerExecutor");
 
 		try {
 			ExecutorService clientTimerExecutor = runClientTests
@@ -406,6 +613,9 @@ public class TestExecutor {
 	 * shut down the server timer thread execution
 	 */
 	private void shutDownServerTimerExecutor() {
+
+		LOGGER.info("called shutDownServerTimerExecutor");
+
 		try {
 			serverExecutors.shutdownNow();
 			serverExecutors.awaitTermination(3, TimeUnit.SECONDS);
@@ -414,25 +624,117 @@ public class TestExecutor {
 		}
 
 	}
-	
+
 	/**
-	 * remove the shell file
-	 * 
+	 * Initialize test executors
 	 */
+	private void InitTestExecutors() {
 
-	private void removeShell() {
+		// set fail reason
+		TestResult.setFailReason(null);
 
-		try {
-			String shPath = new java.io.File(".").getCanonicalPath()
-					+ FILE_SEPARATOR + "testApp.sh";
+		failString = new StringBuilder();
 
-			if (TestUtility.isFileExist(shPath)) {
-				new File(shPath).delete();
+		isValidationFailed = false;
 
-			}
-		} catch (IOException e) {
+		switch (TestMode.getTestModefromString(CONFIG_INSTANCE
+				.getValue(MITESTER_MODE))) {
+		case ADVANCED: {
 
+			doneClientTest = new CountDownLatch(1);
+
+			doneServerTest = new CountDownLatch(1);
+
+			break;
+		}
+		case USER: {
+
+			doneServerTest = new CountDownLatch(1);
+
+			break;
+		}
 		}
 
 	}
+
+	/**
+	 * It returns execution completion status
+	 * 
+	 * @return true when execution of test completed
+	 */
+	public boolean isCompleted() {
+		return isCompleted;
+	}
+
+	/**
+	 * It returns total number of test count
+	 * 
+	 * @return total test count
+	 */
+	public int getTotalTestCount() {
+		return totalTestCount;
+
+	}
+
+	/**
+	 * It returns executed test count
+	 * 
+	 * @return executed test count
+	 */
+
+	public int getExecutedTestCount() {
+		return executedTestCount;
+	}
+
+	/**
+	 * It returns pass test count
+	 * 
+	 * @return pass test count
+	 */
+	public int getPassCount() {
+		return passCount;
+	}
+
+	/**
+	 * buffer the fail string
+	 * 
+	 * @param fail
+	 *            represents fail string
+	 * 
+	 */
+	public void bufferFailString(String failStr) {
+
+		if (!failString.toString().equals(""))
+			failString.append(COMMA_SEPARATOR + " ");
+		failString.append(failStr);
+	}
+
+	/**
+	 * return the buffered fail string
+	 * 
+	 * @return buffered fail string
+	 */
+	public String getBufferedFailString() {
+		return failString.toString();
+	}
+
+	/**
+	 * set the validation failed status
+	 * 
+	 * @param isValidationFailed
+	 *            is a boolean value represent validation status
+	 */
+	public void setIsValidationFailed(boolean isValidationFailed) {
+		this.isValidationFailed = isValidationFailed;
+	}
+
+	/**
+	 * return the validation failed status
+	 * 
+	 * @return validation failed status
+	 */
+	public boolean getIsValidationFailed() {
+		return isValidationFailed;
+	}
+
 }

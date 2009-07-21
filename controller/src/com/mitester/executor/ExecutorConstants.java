@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 					License 											Details
+ * Package 						License 											Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 			NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 					The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -33,26 +34,26 @@
 package com.mitester.executor;
 
 /**
- * Executor constants are used in the test script execution
+ * Executor constants are being used in the test script execution
  * 
  */
 
 public class ExecutorConstants {
 
 	/**
-	 * TEST_MODE
+	 * MITESTER_MODE
 	 */
-	public static final String TEST_MODE = "TEST_MODE";
+	public static final String MITESTER_MODE = "MITESTER_MODE";
 
 	/**
-	 * ADVANCED
+	 * ADVANCED MODE
 	 */
-	public static final String TEST_MODE_ADVANCED = "ADVANCED";
+	public static final String ADVANCED_MODE = "ADVANCED";
 
 	/**
-	 * USER
+	 * USER MODE
 	 */
-	public static final String TEST_MODE_USER = "USER";
+	public static final String USER_MODE = "USER";
 
 	/**
 	 * WAIT
@@ -60,24 +61,24 @@ public class ExecutorConstants {
 	public static final String WAIT_TIME = "WAIT";
 
 	/**
-	 * CLIENT_WAIT_TIME
+	 * SUT_WAIT_TIME
 	 */
-	public static final String CLIENT_WAIT_TIME = "CLIENT_WAIT_TIME";
+	public static final String SUT_WAIT_TIME = "SUT_WAIT_TIME";
 
 	/**
-	 * SERVER_WAIT_TIME
+	 * MITESTER_WAIT_TIME
 	 */
-	public static final String SERVER_WAIT_TIME = "SERVER_WAIT_TIME";
+	public static final String MITESTER_WAIT_TIME = "MITESTER_WAIT_TIME";
 
 	/**
-	 * SERVER_DELAY
+	 * MITESTER_DELAY
 	 */
-	public static final String SERVER_DELAY = "SERVER_DELAY";
+	public static final String MITESTER_DELAY = "MITESTER_DELAY";
 
 	/**
-	 * EXECUTION_INTERVAL
+	 * TEST_INTERVAL
 	 */
-	public static final String EXECUTION_INTERVAL = "EXECUTION_INTERVAL";
+	public static final String TEST_INTERVAL = "TEST_INTERVAL";
 
 	/**
 	 * SEND
@@ -133,19 +134,13 @@ public class ExecutorConstants {
 	 * Maximum amount of time (in seconds) the ClientScriptRunner will wait for
 	 * receiving notification or message from SUT
 	 */
-	public static final int CLIENT_WAIT_TIME_SEC = 35;
-
-	/**
-	 * amount of time represents interval between the test execution (in
-	 * milliseconds)
-	 */
-	public static final int CLIENT_EXECUTION_INTERVAL = 2000;
+	public static final int SUT_WAIT_TIME_SEC = 35;
 
 	/**
 	 * Maximum amount of time (in seconds)the ServerScriptRunner will wait for
 	 * receiving sip message from client
 	 */
-	public static final int SERVER_WAIT_TIME_SEC = 60;
+	public static final int MITESTER_WAIT_TIME_SEC = 40;
 
 	/**
 	 * amount of time represents default DISCARD_WAIT_TIME (in seconds)
@@ -153,16 +148,14 @@ public class ExecutorConstants {
 	public static final int DISCARD_WAIT_TIME_SEC = 32;
 
 	/**
-	 * amount of time represents initial delay on sending SIP request or next
-	 * SIP response in series of SIP response message from miTester
+	 * amount of time represents initial delay on sending SIP request/response 
 	 */
 	public static final int INITIAL_DELAY_SEC = 0;
 
 	/**
-	 * amount of time represents interval between the server test execution (in
-	 * milliseconds) and also used make delay at UDP data gram socket creation
+	 * amount of time represents interval between the test execution (in
+	 * milliseconds) 
 	 */
-
-	public static final int SERVER_EXECUTION_INTERVAL = 2000;
+	public static final int DEFAULT_TEST_INTERVAL = 2000;
 
 }

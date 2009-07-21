@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 										Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -67,7 +68,10 @@ import javax.sip.header.ToHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 
+import org.apache.log4j.Logger;
+
 import com.mitester.sipserver.ProcessSIPMessage;
+import com.mitester.utility.MiTesterLog;
 
 /**
  * A method allows a UA to query another UA or a proxy server as to its
@@ -75,10 +79,12 @@ import com.mitester.sipserver.ProcessSIPMessage;
  * methods, content types, extensions, codecs, etc. without "ringing" the other
  * party.
  * 
- * 
- * 
  */
 public class OPTIONSRequestHandler {
+
+	private static final Logger LOGGER = MiTesterLog
+			.getLogger(OPTIONSRequestHandler.class.getName());
+
 	/**
 	 * Generating OPTIONS Request
 	 * 
@@ -88,10 +94,10 @@ public class OPTIONSRequestHandler {
 	 * @throws InvalidArgumentException
 	 * @throws SipException
 	 */
-	public static Request createOPTIONSRequest(String dialog) throws NullPointerException,
-	        java.text.ParseException, InvalidArgumentException, SipException {
-
-
+	public static Request createOPTIONSRequest(String dialog)
+			throws NullPointerException, java.text.ParseException,
+			InvalidArgumentException, SipException {
+		LOGGER.info("Generation of OPTIONS Request is started");
 		Request request;
 		SipFactory factory = SipFactory.getInstance();
 		HeaderFactory headerFactory = factory.createHeaderFactory();
@@ -99,71 +105,72 @@ public class OPTIONSRequestHandler {
 		MessageFactoryImpl messageFactoryImpl = new MessageFactoryImpl();
 		List<ViaHeader> viaHeaders = new ArrayList<ViaHeader>();
 		Random remotetag = new Random();
-		CallIdHeader callid ;
+		CallIdHeader callid;
 		SipURI fromAddress;
 		Address fromNameAddress;
 		FromHeader fromHeader;
 		SipURI toAddress;
 		Address toNameAddress;
 		ToHeader toHeader;
-		if(dialog == null) {
-		fromAddress = MessageHandlerHelper.createSIPURI(FROM_USER_NAME,
-		        LOOP_BACK_ADDRESS, addressFactory);
-		fromAddress.setPort(FROM_PORT);
-		fromNameAddress = MessageHandlerHelper.createAddress(
-		        fromAddress, addressFactory);
-		fromNameAddress.setDisplayName(FROM_DISPLAY_NAME);
-		// create from header
-		fromHeader = MessageHandlerHelper.createFromHeader(
-		        fromNameAddress, Integer.toHexString(remotetag.nextInt()),
-		        headerFactory);
+		if (dialog == null) {
+			fromAddress = MessageHandlerHelper.createSIPURI(FROM_USER_NAME,
+					LOOP_BACK_ADDRESS, addressFactory);
+			fromAddress.setPort(FROM_PORT);
+			fromNameAddress = MessageHandlerHelper.createAddress(fromAddress,
+					addressFactory);
+			fromNameAddress.setDisplayName(FROM_DISPLAY_NAME);
+			// create from header
+			fromHeader = MessageHandlerHelper.createFromHeader(fromNameAddress,
+					Integer.toHexString(remotetag.nextInt()), headerFactory);
 
-		toAddress = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
-		        LOOP_BACK_ADDRESS, addressFactory);
-		toAddress.setPort(TO_PORT);
-		toNameAddress = MessageHandlerHelper.createAddress(toAddress,
-		        addressFactory);
-		toNameAddress.setDisplayName(TO_DISPLAY_NAME);
-		// create to Header
-		toHeader = MessageHandlerHelper.createToHeader(toNameAddress,
-		        null, headerFactory);
-		
-		// create call-ID
-		callid = MessageHandlerHelper.createCallIdHeader(Integer
-		        .toHexString(remotetag.nextInt()), LOOP_BACK_ADDRESS,
-		        headerFactory);
+			toAddress = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
+					LOOP_BACK_ADDRESS, addressFactory);
+			toAddress.setPort(TO_PORT);
+			toNameAddress = MessageHandlerHelper.createAddress(toAddress,
+					addressFactory);
+			toNameAddress.setDisplayName(TO_DISPLAY_NAME);
+			// create to Header
+			toHeader = MessageHandlerHelper.createToHeader(toNameAddress, null,
+					headerFactory);
+
+			// create call-ID
+			callid = MessageHandlerHelper.createCallIdHeader(Integer
+					.toHexString(remotetag.nextInt()), LOOP_BACK_ADDRESS,
+					headerFactory);
 		} else {
-			SIPMessage sipMsg = ProcessSIPMessage.getSIPMessage(dialog, Request.OPTIONS,
-			        SERVER_REQUEST);
+			SIPMessage sipMsg = ProcessSIPMessage.getSIPMessage(dialog,
+					Request.OPTIONS, SERVER_REQUEST);
 			callid = sipMsg.getCallId();
 			fromHeader = sipMsg.getFrom();
 			toHeader = sipMsg.getTo();
+			
 		}
+		
 		SipURI requestURI = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
-		        LOOP_BACK_ADDRESS, addressFactory);
+				LOOP_BACK_ADDRESS, addressFactory);
 		requestURI.setPort(TO_PORT);
 
 		// create Vi aheader
 		ViaHeader viaHeader = MessageHandlerHelper.createViaHeader(
-		        LOOP_BACK_ADDRESS, FROM_PORT, PROTOCOL, MAGIC_COOKIES
-		                + Integer.toHexString(remotetag.nextInt()),
-		        headerFactory);
+				LOOP_BACK_ADDRESS, FROM_PORT, PROTOCOL, MAGIC_COOKIES
+						+ Integer.toHexString(remotetag.nextInt()),
+				headerFactory);
 
 		// add via headers
 		viaHeaders.add(viaHeader);
 
 		CSeqHeader cSeqHeader = MessageHandlerHelper.createCSeqHeader(1,
-		        Request.OPTIONS, headerFactory);
+				Request.OPTIONS, headerFactory);
 
 		// Create a new MaxForwardsHeader
 		MaxForwardsHeader maxForwards = MessageHandlerHelper
-		        .createMaxForwardsHeader(MAXFORWARDS, headerFactory);
+				.createMaxForwardsHeader(MAXFORWARDS, headerFactory);
 
 		// create request
 		request = MessageHandlerHelper.createRequest(requestURI,
-		        Request.OPTIONS, callid, cSeqHeader, fromHeader, toHeader,
-		        viaHeaders, maxForwards, messageFactoryImpl);
-
+				Request.OPTIONS, callid, cSeqHeader, fromHeader, toHeader,
+				viaHeaders, maxForwards, messageFactoryImpl);
+		LOGGER.info("Generation of OPTIONS Request is ended");
 		return request;
 	}
 

@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 										Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -68,15 +69,18 @@ import javax.sip.header.ToHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 
+import org.apache.log4j.Logger;
+
 import com.mitester.sipserver.ProcessSIPMessage;
+import com.mitester.utility.MiTesterLog;
 
 /**
  * A method to cancel the request before the request is answered.
- * 
- * 
- * 
  */
 public class CANCELRequestHandler {
+	private static final Logger LOGGER = MiTesterLog
+			.getLogger(CANCELRequestHandler.class.getName());
+
 	/**
 	 * Generation of CANCEL Request
 	 * 
@@ -88,9 +92,10 @@ public class CANCELRequestHandler {
 	 * @throws InvalidArgumentException
 	 * @throws SipException
 	 */
-	public static Request createCANCELRequest(SIPMessage sipmsg,String dialog)
-	        throws NullPointerException, java.text.ParseException,
-	        InvalidArgumentException, SipException {
+	public static Request createCANCELRequest(SIPMessage sipmsg, String dialog)
+			throws NullPointerException, java.text.ParseException,
+			InvalidArgumentException, SipException {
+		LOGGER.info("Generation of CANCEL Request is started");
 		MessageFactoryImpl messageFactoryImpl = new MessageFactoryImpl();
 		Request request;
 		SipFactory factory = SipFactory.getInstance();
@@ -101,86 +106,88 @@ public class CANCELRequestHandler {
 		if (sipmsg != null) {
 
 			ViaHeader viaheader = (Via) sipmsg.getHeader(ViaHeader.NAME);
+			
 			viaHeaders.add(viaheader);
 			SipURI requestURI = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
-			        LOOP_BACK_ADDRESS, addressFactory);
+					LOOP_BACK_ADDRESS, addressFactory);
 
 			MaxForwardsHeader maxfwd = MessageHandlerHelper
-			        .createMaxForwardsHeader(MAXFORWARDS, headerFactory);
+					.createMaxForwardsHeader(MAXFORWARDS, headerFactory);
 
 			long invitecseq = sipmsg.getCSeq().getSeqNumber();
 			CSeqHeader cseq = MessageHandlerHelper.createCSeqHeader(invitecseq,
-			        Request.CANCEL, headerFactory);
+					Request.CANCEL, headerFactory);
 			CallIdHeader callid;
 			FromHeader fromHeader;
 			ToHeader toHeader;
-			if(dialog == null) {
+			if (dialog == null) {
 				callid = sipmsg.getCallId();
 				fromHeader = sipmsg.getFrom();
 				toHeader = sipmsg.getTo();
 			} else {
-				SIPMessage sipMsg = ProcessSIPMessage.getSIPMessage(dialog, Request.CANCEL,
-				        SERVER_REQUEST);
+				SIPMessage sipMsg = ProcessSIPMessage.getSIPMessage(dialog,
+						Request.CANCEL, SERVER_REQUEST);
 				callid = sipMsg.getCallId();
-				fromHeader= sipMsg.getFrom();
+				fromHeader = sipMsg.getFrom();
 				toHeader = sipMsg.getTo();
 			}
+			
 			request = MessageHandlerHelper.createRequest(requestURI,
-			        Request.CANCEL, callid, cseq, fromHeader,
-			        toHeader, viaHeaders, maxfwd, messageFactoryImpl);
+					Request.CANCEL, callid, cseq, fromHeader, toHeader,
+					viaHeaders, maxfwd, messageFactoryImpl);
 
 			request.setMethod(Request.CANCEL);
 		} else {
 
 			SipURI fromAddress = MessageHandlerHelper.createSIPURI(
-			        FROM_USER_NAME, LOOP_BACK_ADDRESS, addressFactory);
+					FROM_USER_NAME, LOOP_BACK_ADDRESS, addressFactory);
 
 			fromAddress.setPort(FROM_PORT);
 			Address fromNameAddress = MessageHandlerHelper.createAddress(
-			        fromAddress, addressFactory);
+					fromAddress, addressFactory);
 
 			fromNameAddress.setDisplayName(FROM_DISPLAY_NAME);
 			FromHeader fromHeader = MessageHandlerHelper.createFromHeader(
-			        fromNameAddress, Integer.toHexString(remotetag.nextInt()),
-			        headerFactory);
+					fromNameAddress, Integer.toHexString(remotetag.nextInt()),
+					headerFactory);
 
 			SipURI toAddress = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
-			        LOOP_BACK_ADDRESS, addressFactory);
+					LOOP_BACK_ADDRESS, addressFactory);
 
 			toAddress.setPort(TO_PORT);
 			Address toNameAddress = MessageHandlerHelper.createAddress(
-			        toAddress, addressFactory);
+					toAddress, addressFactory);
 
 			toNameAddress.setDisplayName(TO_DISPLAY_NAME);
 			ToHeader toHeader = MessageHandlerHelper.createToHeader(
-			        toNameAddress, null, headerFactory);
+					toNameAddress, null, headerFactory);
 
 			SipURI requestURI = MessageHandlerHelper.createSIPURI(TO_USER_NAME,
-			        LOOP_BACK_ADDRESS, addressFactory);
+					LOOP_BACK_ADDRESS, addressFactory);
 			requestURI.setPort(TO_PORT);
 
 			ViaHeader viaHeader = MessageHandlerHelper.createViaHeader(
-			        LOOP_BACK_ADDRESS, FROM_PORT, PROTOCOL, MAGIC_COOKIES
-			                + Integer.toHexString(remotetag.nextInt()),
-			        headerFactory);
+					LOOP_BACK_ADDRESS, FROM_PORT, PROTOCOL, MAGIC_COOKIES
+							+ Integer.toHexString(remotetag.nextInt()),
+					headerFactory);
 
 			// add via headers
 			viaHeaders.add(viaHeader);
 			CSeqHeader cSeqHeader = MessageHandlerHelper.createCSeqHeader(1,
-			        Request.CANCEL, headerFactory);
+					Request.CANCEL, headerFactory);
 
 			// Create a new MaxForwardsHeader
 			MaxForwardsHeader maxForwards = MessageHandlerHelper
-			        .createMaxForwardsHeader(MAXFORWARDS, headerFactory);
+					.createMaxForwardsHeader(MAXFORWARDS, headerFactory);
 			CallIdHeader callid = MessageHandlerHelper.createCallIdHeader(
-			        Integer.toHexString(remotetag.nextInt()),
-			        LOOP_BACK_ADDRESS, headerFactory);
+					Integer.toHexString(remotetag.nextInt()),
+					LOOP_BACK_ADDRESS, headerFactory);
 
 			request = MessageHandlerHelper.createRequest(requestURI,
-			        Request.CANCEL, callid, cSeqHeader, fromHeader, toHeader,
-			        viaHeaders, maxForwards, messageFactoryImpl);
+					Request.CANCEL, callid, cSeqHeader, fromHeader, toHeader,
+					viaHeaders, maxForwards, messageFactoryImpl);
 		}
-
+		LOGGER.info("Generation of CANCEL Request is ended");
 		return request;
 	}
 }

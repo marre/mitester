@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 										Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -41,7 +42,7 @@ import gov.nist.javax.sip.message.SIPMessage;
 
 import java.text.ParseException;
 import java.util.List;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 import javax.sip.InvalidArgumentException;
 import javax.sip.SipException;
@@ -92,7 +93,7 @@ import com.mitester.utility.MiTesterLog;
 public class ReferredByHeaderHandler {
 
 	private static final Logger LOGGER = MiTesterLog
-	        .getLogger(ReferredByHeaderHandler.class.getName());
+			.getLogger(ReferredByHeaderHandler.class.getName());
 
 	/**
 	 * addReferredByHeader is used to add ReferredBy header
@@ -107,19 +108,19 @@ public class ReferredByHeaderHandler {
 	 * @throws IndexOutOfBoundsException
 	 */
 	public static ReferredByHeader addReferredByHeader(Header headerNew)
-	        throws SipException, ParseException, InvalidArgumentException,
-	        IndexOutOfBoundsException {
+			throws SipException, ParseException, InvalidArgumentException,
+			IndexOutOfBoundsException {
 
 		LOGGER.info("Creating "
-		        + SIPHeaders.getSipHeaderfromString(
-		                headerNew.getName().toUpperCase()).toString()
-		        + " Header");
+				+ SIPHeaders.getSipHeaderfromString(
+						headerNew.getName().toUpperCase()).toString()
+				+ " Header");
 
 		ReferredByHeader referby = null;
 		Address referedby = null;
 		SipFactory factory = SipFactory.getInstance();
 		HeaderFactoryImpl hfimpl = (HeaderFactoryImpl) factory
-		        .createHeaderFactory();
+				.createHeaderFactory();
 		HeaderFactory headerFactroy = factory.createHeaderFactory();
 		((HeaderFactoryImpl) headerFactroy).setPrettyEncoding(true);
 		AddressFactory addressFactory = factory.createAddressFactory();
@@ -162,9 +163,9 @@ public class ReferredByHeaderHandler {
 	 * @throws java.lang.IllegalArgumentException
 	 */
 	public static SIPMessage removeReferredByHeader(Header header,
-	        SIPMessage sipMessage, String type) throws SipException,
-	        ParseException, InvalidArgumentException, NullPointerException,
-	        java.lang.IllegalArgumentException {
+			SIPMessage sipMessage, String type) throws SipException,
+			ParseException, InvalidArgumentException, NullPointerException,
+			java.lang.IllegalArgumentException {
 		Request request = null;
 		Response response = null;
 		SIPMessage returnsipMessage = null;
@@ -172,10 +173,25 @@ public class ReferredByHeaderHandler {
 			response = (Response) sipMessage;
 		else
 			request = (Request) sipMessage;
+		ReferredByHeader referby = null;
 		if (type.equalsIgnoreCase(SipServerConstants.SERVER_RESPONSE))
-			response.removeHeader(ReferredByHeader.NAME);
+			referby = (ReferredByHeader) response
+					.getHeader(ReferredByHeader.NAME);
 		else
-			request.removeHeader(ReferredByHeader.NAME);
+			referby = (ReferredByHeader) request
+					.getHeader(ReferredByHeader.NAME);
+
+		List<Param> removeParams = header.getParam();
+
+		for (Param parameterName : removeParams) {
+			referby.removeParameter(parameterName.getName());
+		}
+		if (removeParams.size() == 0) {
+			if (type.equalsIgnoreCase(SipServerConstants.SERVER_RESPONSE))
+				response.removeHeader(ReferredByHeader.NAME);
+			else
+				request.removeHeader(ReferredByHeader.NAME);
+		}
 		if (type.equalsIgnoreCase(SipServerConstants.SERVER_RESPONSE))
 			returnsipMessage = (SIPMessage) response;
 		else

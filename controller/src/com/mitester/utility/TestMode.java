@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 					License 											Details
+ * Package 						License 											Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 			NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 					The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 								https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -32,7 +33,9 @@
  */
 package com.mitester.utility;
 
-
+/**
+ *  TestMode is an enum which is used to get the mitester mode 
+ */
 public enum TestMode {
 
 	ADVANCED {
@@ -48,6 +51,12 @@ public enum TestMode {
 			return 2;
 		}
 	};
+	
+	/**
+	 * It returns the test mode from test id
+	 * @param Id represents the test id 
+	 * @return TestMode
+	 */
 	public static TestMode getTestModefromId(int Id) {
 		switch (Id) {
 		case 1:
@@ -60,6 +69,11 @@ public enum TestMode {
 		return null;
 	}
 
+	/**
+	 *  It return the test mode from string
+	 * @param testMode represents the name of the test mode
+	 * @return TestMode
+	 */
 	public static TestMode getTestModefromString(String testMode) {
 
 		if (testMode.equalsIgnoreCase("ADVANCED"))
@@ -72,6 +86,10 @@ public enum TestMode {
 		}
 	}
 
+	/**
+	 * it returns the test id
+	 * @return test id
+	 */
 	public abstract int getId();
 
 }

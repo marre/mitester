@@ -1,7 +1,7 @@
 /*
  * Project: mitesterforsip
  * Author: Mobax
- * Filename: CopyValuetoHeader.java
+ * Filename: UdpCommn.java
  * Copyright (C) 2008 - 2009  Mobax Networks Private Limited
  * miTester for SIP – License Information
  * --------------------------------------------------
@@ -20,13 +20,13 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										Details
+ * Package 						License 											Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
-
 /*
  * miTester is a test automation framework developed for testing SIP applications. 
  * Developers and testers can simulate any kind of test cases and test applications.
@@ -36,6 +36,11 @@ package com.mitester.sipserver;
 
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
+
+import com.mitester.utility.MiTesterLog;
+
 /**
  * This class copy the header values
  * 
@@ -44,7 +49,8 @@ import java.util.List;
  */
 
 public class CopyValuetoHeader {
-
+	private static final Logger LOGGER = MiTesterLog
+			.getLogger(CopyValuetoHeader.class.getName());
 	private static final String CONTENT_LENGTH = "Content-Length";
 	private static final String FROM = "From";
 
@@ -57,6 +63,7 @@ public class CopyValuetoHeader {
 	 * @return the To header
 	 */
 	public static String addCopyValueToHeader(List<String> copy, String msg) {
+		LOGGER.info("Adding copy value from the previous SIP Message");
 		StringBuilder Message = null;
 		if (copy != null) {
 			Message = new StringBuilder(msg);
@@ -64,7 +71,7 @@ public class CopyValuetoHeader {
 				String name = copy.get(j);
 
 				if ((!name.startsWith(CONTENT_LENGTH))
-				        && (!name.startsWith(FROM))) {
+						&& (!name.startsWith(FROM))) {
 					int index = Message.indexOf(FROM);
 					Message.insert(index, name);
 				} else if (name.startsWith(FROM)) {

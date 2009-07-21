@@ -20,10 +20,11 @@
  * -----------------------------------------------------------------------------------------
  * The miTester for SIP relies on the following third party software. Below is the location and license information :
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Package 				License 										    Details
+ * Package 						License 										    Details
  *---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * Jain SIP stack 		NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
- * Log4J 				The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * Jain SIP stack 				NIST-CONDITIONS-OF-USE 						        https://jain-sip.dev.java.net/source/browse/jain-sip/licenses/
+ * Log4J 						The Apache Software License, Version 2.0 			http://logging.apache.org/log4j/1.2/license.html
+ * JNetStreamStandalone lib     GNU Library or LGPL			     					http://sourceforge.net/projects/jnetstream/
  * 
  */
 
@@ -49,30 +50,38 @@ import javax.sip.InvalidArgumentException;
 import javax.sip.SipException;
 import javax.sip.SipFactory;
 import javax.sip.header.ContentTypeHeader;
+import javax.sip.header.Header;
 import javax.sip.header.HeaderFactory;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 import javax.xml.bind.JAXBException;
 
+import org.apache.log4j.Logger;
+
 import com.mitester.jaxbparser.sdpbody.ParseSDPBody;
 import com.mitester.jaxbparser.server.CONTENT;
-import com.mitester.jaxbparser.server.Header;
+
 import com.mitester.jaxbparser.server.OTHERSBODY;
 import com.mitester.jaxbparser.server.Param;
 import com.mitester.jaxbparser.server.SDPBODY;
 import com.mitester.jaxbparser.server.Sdp;
 import com.mitester.jaxbparser.server.TXTBODY;
 import com.mitester.jaxbparser.server.XMLBODY;
+import com.mitester.sipserver.sipheaderhandler.CustomHeaderHandler;
+import com.mitester.sipserver.sipmessagehandler.CANCELRequestHandler;
 import com.mitester.utility.ConfigurationProperties;
+import com.mitester.utility.MiTesterLog;
 import com.mitester.utility.TestUtility;
 
 /**
- * addContentToSIPMessage is used to add content to the sip message
+ * It used to add content to the sip message
  * 
  */
 
 public class AddContentToSIPMessage {
 
+	private static final Logger LOGGER = MiTesterLog
+			.getLogger(CANCELRequestHandler.class.getName());
 	private static final String NEWLINE = "\r\n";
 	private static final String DOUBLE_HYPHON = "--";
 	private static final String CONTENT_TYPE_SEPARATOR = "/";
@@ -87,24 +96,29 @@ public class AddContentToSIPMessage {
 	private static final String SERVER_PARSING_ACTION_START_TEXT_SEPARATOR = "<TEXT>";
 	private static final String SERVER_PARSING_ACTION_START_INNER_TXT_SEPARATOR = "<txt";
 	private static final String serverScriptPath = ConfigurationProperties.CONFIG_INSTANCE
-	        .getValue("SERVER_SCRIPT_PATH");
+			.getValue("SCRIPT_PATH_MITESTER");
+	private static boolean misspeltCT = false;
+	private static Header sdpmisspelt = null;
+	private static Header txtmissplet = null;
+	private static Header xmlmissplet = null;
+	private static Header othersmissplet = null;
 
 	/**
 	 * This method is used to add a content to the SIP Message
 	 * 
-	 * @param Type
-	 * @param sipMessage
-	 * @param content
-	 * @return SIPMessage
+	 * @param Type represents sip request/response
+	 * @param sipMessage is a  sip message constructed by jain sip stack
+	 * @param content going to be added with sip message
+	 * @return SIPMessage with added content
 	 * @throws SipException
 	 * @throws InvalidArgumentException
 	 * @throws ParseException
 	 * @throws IOException
 	 */
 	public static SIPMessage setSDPContent(String Type, String sipMessage,
-	        CONTENT content) throws SipException, InvalidArgumentException,
-	        ParseException, IOException {
-
+			CONTENT content) throws SipException, InvalidArgumentException,
+			ParseException, IOException {
+		LOGGER.info("Adding Content to the SIP Message is started");
 		SIPMessage returnIPMessage = null;
 		SipFactory factory = SipFactory.getInstance();
 		HeaderFactory headerFactory = factory.createHeaderFactory();
@@ -120,7 +134,7 @@ public class AddContentToSIPMessage {
 		StringBuilder sdpBuf = new StringBuilder();
 		StringBuilder othersBuf = new StringBuilder();
 
-		List<Header> sdpheader = null;
+		List<com.mitester.jaxbparser.server.Header> sdpheader = null;
 		SDPBODY sdpBody = content.getSDPBODY();
 
 		sdpheader = sdpBody.getHeader();
@@ -130,7 +144,7 @@ public class AddContentToSIPMessage {
 		for (Sdp objSdp : sdp) {
 			if (objSdp instanceof Sdp) {
 				sdpBuf.append(objSdp.getName() + EQUALS + objSdp.getValue()
-				        + NEWLINE);
+						+ NEWLINE);
 			}
 		}
 		if (sdpBody.getFile() != null) {
@@ -138,7 +152,7 @@ public class AddContentToSIPMessage {
 			sdpBuf = processSdpFile(sdpBody);
 		}
 
-		List<Header> txtheader = null;
+		List<com.mitester.jaxbparser.server.Header> txtheader = null;
 		TXTBODY txtBody = content.getTXTBODY();
 		if (txtBody != null) {
 			txtheader = txtBody.getHeader();
@@ -149,7 +163,7 @@ public class AddContentToSIPMessage {
 
 			}
 		}
-		List<Header> xmlheader = null;
+		List<com.mitester.jaxbparser.server.Header> xmlheader = null;
 		XMLBODY xmlBody = content.getXMLBODY();
 		if (xmlBody != null) {
 			xmlheader = xmlBody.getHeader();
@@ -159,7 +173,7 @@ public class AddContentToSIPMessage {
 
 			}
 		}
-		List<Header> othersheader = null;
+		List<com.mitester.jaxbparser.server.Header> othersheader = null;
 		OTHERSBODY othersBody = content.getOTHERSBODY();
 		if (othersBody != null) {
 			othersheader = othersBody.getHeader();
@@ -179,79 +193,53 @@ public class AddContentToSIPMessage {
 		if (Type.equals(SipServerConstants.SERVER_RESPONSE)) {
 
 			ContentTypeHeader contentType = (ContentTypeHeader) response
-			        .getHeader(ContentTypeHeader.NAME);
+					.getHeader(ContentTypeHeader.NAME);
 			if (contentType != null) {
 				String ctype = contentType.toString();
 				String ctypearray[] = ctype.split(SEMICOLON);
 				if (ctypearray.length > 1) {
 					int index = ctypearray[1].indexOf(EQUALS);
 					String boundaryValue = ctypearray[1].substring(index + 1,
-					        ctypearray[1].length());
+							ctypearray[1].length());
 					boundaryValue = boundaryValue.trim();
 					if (sdpheader != null) {
-						for (Header sdpHeader : sdpheader) {
-							String array[] = sdpHeader.getValue().split(
-							        CONTENT_TYPE_SEPARATOR);
-							contentType_sdp = headerFactory
-							        .createContentTypeHeader(array[0], array[1]);
-							contentType_sdp = addParameteToContentTypeHeader(
-							        contentType_sdp, sdpHeader);
-						}
+						contentType_sdp = createSDPContentTypeHeader(sdpheader,
+								contentType_sdp, headerFactory, Type);
 					}
 					if (txtheader != null) {
-						for (Header txtHeader : txtheader) {
-							String array[] = txtHeader.getValue().split(
-							        CONTENT_TYPE_SEPARATOR);
-							contentType_txt = headerFactory
-							        .createContentTypeHeader(array[0], array[1]);
-							contentType_txt = addParameteToContentTypeHeader(
-							        contentType_txt, txtHeader);
-						}
+						contentType_txt = createTXTContentTypeHeader(txtheader,
+								contentType_txt, headerFactory, Type);
 					}
-
 					if (xmlheader != null) {
-						for (Header txtHeader : txtheader) {
-							String xmlarray[] = txtHeader.getValue().split(
-							        CONTENT_TYPE_SEPARATOR);
-							contentType_xml = headerFactory
-							        .createContentTypeHeader(xmlarray[0],
-							                xmlarray[1]);
-							contentType_xml = addParameteToContentTypeHeader(
-							        contentType_xml, txtHeader);
-						}
+						contentType_xml = createXMLContentTypeHeader(xmlheader,
+								contentType_xml, headerFactory, Type);
 					}
 					if (othersheader != null) {
-						for (Header othersHeader : othersheader) {
-							String othersarray[] = othersHeader.getValue()
-							        .split(CONTENT_TYPE_SEPARATOR);
-							contentType_others = headerFactory
-							        .createContentTypeHeader(othersarray[0],
-							                othersarray[1]);
-							contentType_others = addParameteToContentTypeHeader(
-							        contentType_others, othersHeader);
-						}
+						contentType_others = createOthersContentTypeHeader(
+								othersheader, contentType_others,
+								headerFactory, Type);
 					}
 
 					StringBuilder stringBuilder = new StringBuilder();
 
 					if (contentType_sdp != null) {
 						stringBuilder = addContentHelper(stringBuilder,
-						        boundaryValue, contentType_sdp, sdpBuf);
+								boundaryValue, contentType_sdp, sdpBuf);
 					}
 					if (contentType_txt != null) {
 						stringBuilder = addContentHelper(stringBuilder,
-						        boundaryValue, contentType_txt, txtBuf);
+								boundaryValue, contentType_txt, txtBuf);
 					}
 					if (contentType_xml != null) {
 						stringBuilder = addContentHelper(stringBuilder,
-						        boundaryValue, contentType_xml, xmlBuf);
+								boundaryValue, contentType_xml, xmlBuf);
 					}
 					if (contentType_others != null) {
 						stringBuilder = addContentHelper(stringBuilder,
-						        boundaryValue, contentType_others, othersBuf);
+								boundaryValue, contentType_others, othersBuf);
 					}
 					stringBuilder.append(DOUBLE_HYPHON + boundaryValue
-					        + DOUBLE_HYPHON);
+							+ DOUBLE_HYPHON);
 					stringBuilder.append(NEWLINE);
 					response.setContent(stringBuilder, contentType);
 
@@ -271,47 +259,22 @@ public class AddContentToSIPMessage {
 
 			} else if (contentType == null) {
 				if (sdpheader != null) {
-					for (Header sdpHeader : sdpheader) {
-						String array[] = sdpHeader.getValue().split(
-						        CONTENT_TYPE_SEPARATOR);
-						contentType_sdp = headerFactory
-						        .createContentTypeHeader(array[0], array[1]);
-						contentType_sdp = addParameteToContentTypeHeader(
-						        contentType_sdp, sdpHeader);
-					}
+					contentType_sdp = createSDPContentTypeHeader(sdpheader,
+							contentType_sdp, headerFactory, Type);
 				}
 				if (txtheader != null) {
-					for (Header txtHeader : txtheader) {
-						String array[] = txtHeader.getValue().split(
-						        CONTENT_TYPE_SEPARATOR);
-						contentType_txt = headerFactory
-						        .createContentTypeHeader(array[0], array[1]);
-						contentType_txt = addParameteToContentTypeHeader(
-						        contentType_txt, txtHeader);
-					}
+					contentType_txt = createTXTContentTypeHeader(txtheader,
+							contentType_txt, headerFactory, Type);
 				}
 
 				if (xmlheader != null) {
-					for (Header txtHeader : txtheader) {
-						String xmlarray[] = txtHeader.getValue().split(
-						        CONTENT_TYPE_SEPARATOR);
-						contentType_xml = headerFactory
-						        .createContentTypeHeader(xmlarray[0],
-						                xmlarray[1]);
-						contentType_xml = addParameteToContentTypeHeader(
-						        contentType_xml, txtHeader);
-					}
+					contentType_xml = createXMLContentTypeHeader(xmlheader,
+							contentType_xml, headerFactory, Type);
 				}
 				if (othersheader != null) {
-					for (Header othersHeader : othersheader) {
-						String othersarray[] = othersHeader.getValue().split(
-						        CONTENT_TYPE_SEPARATOR);
-						contentType_others = headerFactory
-						        .createContentTypeHeader(othersarray[0],
-						                othersarray[1]);
-						contentType_others = addParameteToContentTypeHeader(
-						        contentType_others, othersHeader);
-					}
+					contentType_others = createOthersContentTypeHeader(
+							othersheader, contentType_others, headerFactory,
+							Type);
 				}
 				if (contentType_sdp != null) {
 					response.setContent(sdpBuf.toString(), contentType_sdp);
@@ -323,11 +286,11 @@ public class AddContentToSIPMessage {
 					response.setContent(txtBuf.toString(), contentType_txt);
 				} else if (contentType_others != null) {
 					response.setContent(othersBuf.toString(),
-					        contentType_others);
+							contentType_others);
 				} else {
-
+					LOGGER.info("Adding Content without Content-Type Header in SIP Message");
 					ContentTypeHeader c = headerFactory
-					        .createContentTypeHeader(APPLICATION, SDP);
+							.createContentTypeHeader(APPLICATION, SDP);
 
 					if (sdpBuf.length() != 0)
 						response.setContent(sdpBuf.toString(), c);
@@ -345,7 +308,7 @@ public class AddContentToSIPMessage {
 		} else if (Type.equals(SipServerConstants.SERVER_REQUEST)) {
 
 			ContentTypeHeader contentType1 = (ContentTypeHeader) request
-			        .getHeader(ContentTypeHeader.NAME);
+					.getHeader(ContentTypeHeader.NAME);
 			if (contentType1 != null) {
 				String ctype = contentType1.toString();
 				String ctypearray[] = ctype.split(SEMICOLON);
@@ -353,70 +316,45 @@ public class AddContentToSIPMessage {
 					int index = ctypearray[1].indexOf(EQUALS);
 
 					String boundaryValue = ctypearray[1].substring(index + 1,
-					        ctypearray[1].length());
+							ctypearray[1].length());
 					boundaryValue = boundaryValue.trim();
 					if (sdpheader != null) {
-						for (Header sdpHeader : sdpheader) {
-							String array[] = sdpHeader.getValue().split(
-							        CONTENT_TYPE_SEPARATOR);
-							contentType_sdp = headerFactory
-							        .createContentTypeHeader(array[0], array[1]);
-							contentType_sdp = addParameteToContentTypeHeader(
-							        contentType_sdp, sdpHeader);
-						}
+						contentType_sdp = createSDPContentTypeHeader(sdpheader,
+								contentType_sdp, headerFactory, Type);
 					}
 					if (txtheader != null) {
-						for (Header txtHeader : txtheader) {
-							String array[] = txtHeader.getValue().split(
-							        CONTENT_TYPE_SEPARATOR);
-							contentType_txt = headerFactory
-							        .createContentTypeHeader(array[0], array[1]);
-							contentType_txt = addParameteToContentTypeHeader(
-							        contentType_txt, txtHeader);
-						}
+						contentType_txt = createTXTContentTypeHeader(txtheader,
+								contentType_txt, headerFactory, Type);
 					}
 
 					if (xmlheader != null) {
-						for (Header xmlHeader : xmlheader) {
-							String xmlarray[] = xmlHeader.getValue().split(
-							        CONTENT_TYPE_SEPARATOR);
-							contentType_xml = headerFactory
-							        .createContentTypeHeader(xmlarray[0],
-							                xmlarray[1]);
-							contentType_xml = addParameteToContentTypeHeader(
-							        contentType_xml, xmlHeader);
-						}
+						contentType_xml = createXMLContentTypeHeader(xmlheader,
+								contentType_xml, headerFactory, Type);
 					}
 					if (othersheader != null) {
-						for (Header othersHeader : othersheader) {
-							String othersarray[] = othersHeader.getValue()
-							        .split(CONTENT_TYPE_SEPARATOR);
-							contentType_others = headerFactory
-							        .createContentTypeHeader(othersarray[0],
-							                othersarray[1]);
-							contentType_others = addParameteToContentTypeHeader(
-							        contentType_others, othersHeader);
-						}
+						contentType_others = createOthersContentTypeHeader(
+								othersheader, contentType_others,
+								headerFactory, Type);
 					}
 					StringBuilder stringBuilder = new StringBuilder();
 					if (contentType_sdp != null) {
 						stringBuilder = addContentHelper(stringBuilder,
-						        boundaryValue, contentType_sdp, sdpBuf);
+								boundaryValue, contentType_sdp, sdpBuf);
 					}
 					if (contentType_txt != null) {
 						stringBuilder = addContentHelper(stringBuilder,
-						        boundaryValue, contentType_txt, txtBuf);
+								boundaryValue, contentType_txt, txtBuf);
 					}
 					if (contentType_xml != null) {
 						stringBuilder = addContentHelper(stringBuilder,
-						        boundaryValue, contentType_xml, xmlBuf);
+								boundaryValue, contentType_xml, xmlBuf);
 					}
 					if (contentType_others != null) {
 						stringBuilder = addContentHelper(stringBuilder,
-						        boundaryValue, contentType_others, othersBuf);
+								boundaryValue, contentType_others, othersBuf);
 					}
 					stringBuilder.append(DOUBLE_HYPHON + boundaryValue
-					        + DOUBLE_HYPHON);
+							+ DOUBLE_HYPHON);
 					stringBuilder.append(NEWLINE);
 					request.setContent(stringBuilder, contentType1);
 				} else {
@@ -433,47 +371,22 @@ public class AddContentToSIPMessage {
 				}
 			} else {
 				if (sdpheader != null) {
-					for (Header sdpHeader : sdpheader) {
-						String array[] = sdpHeader.getValue().split(
-						        CONTENT_TYPE_SEPARATOR);
-						contentType_sdp = headerFactory
-						        .createContentTypeHeader(array[0], array[1]);
-						contentType_sdp = addParameteToContentTypeHeader(
-						        contentType_sdp, sdpHeader);
-					}
+					contentType_sdp = createSDPContentTypeHeader(sdpheader,
+							contentType_sdp, headerFactory, Type);
 				}
 				if (txtheader != null) {
-					for (Header txtHeader : txtheader) {
-						String array[] = txtHeader.getValue().split(
-						        CONTENT_TYPE_SEPARATOR);
-						contentType_txt = headerFactory
-						        .createContentTypeHeader(array[0], array[1]);
-						contentType_txt = addParameteToContentTypeHeader(
-						        contentType_txt, txtHeader);
-					}
+					contentType_txt = createTXTContentTypeHeader(txtheader,
+							contentType_txt, headerFactory, Type);
 				}
 
 				if (xmlheader != null) {
-					for (Header txtHeader : xmlheader) {
-						String xmlarray[] = txtHeader.getValue().split(
-						        CONTENT_TYPE_SEPARATOR);
-						contentType_xml = headerFactory
-						        .createContentTypeHeader(xmlarray[0],
-						                xmlarray[1]);
-						contentType_xml = addParameteToContentTypeHeader(
-						        contentType_xml, txtHeader);
-					}
+					contentType_xml = createXMLContentTypeHeader(xmlheader,
+							contentType_xml, headerFactory, Type);
 				}
 				if (othersheader != null) {
-					for (Header othersHeader : othersheader) {
-						String othersarray[] = othersHeader.getValue().split(
-						        CONTENT_TYPE_SEPARATOR);
-						contentType_others = headerFactory
-						        .createContentTypeHeader(othersarray[0],
-						                othersarray[1]);
-						contentType_others = addParameteToContentTypeHeader(
-						        contentType_others, othersHeader);
-					}
+					contentType_others = createOthersContentTypeHeader(
+							othersheader, contentType_others, headerFactory,
+							Type);
 				}
 				if (contentType_sdp != null) {
 					request.setContent(sdpBuf.toString(), contentType_sdp);
@@ -485,12 +398,12 @@ public class AddContentToSIPMessage {
 					request.setContent(txtBuf.toString(), contentType_txt);
 				} else if (contentType_others != null) {
 					request
-					        .setContent(othersBuf.toString(),
-					                contentType_others);
+							.setContent(othersBuf.toString(),
+									contentType_others);
 				} else {
-
+					LOGGER.info("Adding Content without Content-Type Header in SIP Message");
 					ContentTypeHeader c = headerFactory
-					        .createContentTypeHeader(APPLICATION, SDP);
+							.createContentTypeHeader(APPLICATION, SDP);
 
 					if (sdpBuf.length() != 0)
 						request.setContent(sdpBuf.toString(), c);
@@ -506,45 +419,194 @@ public class AddContentToSIPMessage {
 				}
 			}
 		}
+		// adding mis-spelt content type header to the sip message
+		if (misspeltCT) {
+			if (Type.equals(SipServerConstants.SERVER_RESPONSE)) {
+				response.removeHeader(ContentTypeHeader.NAME);
+				if (sdpmisspelt != null)
+					response.addHeader(sdpmisspelt);
+				if (txtmissplet != null)
+					response.addHeader(txtmissplet);
+				if (xmlmissplet != null)
+					response.addHeader(xmlmissplet);
+				if (othersmissplet != null)
+					response.addHeader(othersmissplet);
+			} else {
+				request.removeHeader(ContentTypeHeader.NAME);
+				if (sdpmisspelt != null)
+					request.addHeader(sdpmisspelt);
+				if (txtmissplet != null)
+					request.addHeader(txtmissplet);
+				if (xmlmissplet != null)
+					request.addHeader(xmlmissplet);
+				if (othersmissplet != null)
+					request.addHeader(othersmissplet);
+			}
+		}
+
 		if (Type.equals(SipServerConstants.SERVER_RESPONSE))
 			returnIPMessage = (SIPMessage) response;
 		else
 			returnIPMessage = (SIPMessage) request;
-
+		LOGGER.info("Adding Content to the SIP Message is ended");
 		return returnIPMessage;
 
 	}
 
 	/**
-	 * this is helper method to add a content to the sip message
+	 * It's helper method to add a content to the sip message
 	 * 
-	 * @param stringBuilder
+	 * @param stringBuilder consists of content
 	 * @param paramValu
 	 * @param contentType
 	 * @return
 	 */
 	public static StringBuilder addContentHelper(StringBuilder stringBuilder,
-	        String paramValu, ContentTypeHeader contentType,
-	        StringBuilder buffer) {
+			String paramValu, ContentTypeHeader contentType,
+			StringBuilder buffer) {
 
 		stringBuilder.append(DOUBLE_HYPHON + paramValu).append(NEWLINE).append(
-		        contentType).append(CONTENT_LENGTH + buffer.length()).append(
-		        NEWLINE + NEWLINE).append(buffer).append(NEWLINE + NEWLINE);
+				contentType).append(CONTENT_LENGTH + buffer.length()).append(
+				NEWLINE + NEWLINE).append(buffer).append(NEWLINE + NEWLINE);
 
 		return stringBuilder;
+	}
+
+	public static ContentTypeHeader createSDPContentTypeHeader(
+			List<com.mitester.jaxbparser.server.Header> sdpheader,
+			ContentTypeHeader contentType_sdp, HeaderFactory headerFactory,
+			String type) throws ParseException, IndexOutOfBoundsException,
+			SipException, InvalidArgumentException {
+		for (com.mitester.jaxbparser.server.Header sdpHeader : sdpheader) {
+			if (SIPHeaders.getSipHeaderfromString(sdpHeader.getName()).equals(
+					SIPHeaders.CONTENT_TYPE)) {
+				String array[] = sdpHeader.getValue().split(
+						CONTENT_TYPE_SEPARATOR);
+				contentType_sdp = headerFactory.createContentTypeHeader(
+						array[0], array[1]);
+				contentType_sdp = addParameteToContentTypeHeader(
+						contentType_sdp, sdpHeader);
+			} else {
+				LOGGER
+						.info("Given Content-Type header in SDP-BODY content is Mis-splet");
+				sdpmisspelt = CustomHeaderHandler.createCustomHeader(sdpHeader);
+				String array[] = sdpHeader.getValue().split(
+						CONTENT_TYPE_SEPARATOR);
+				contentType_sdp = headerFactory.createContentTypeHeader(
+						array[0], array[1]);
+				contentType_sdp = addParameteToContentTypeHeader(
+						contentType_sdp, sdpHeader);
+				misspeltCT = true;
+			}
+		}
+		return contentType_sdp;
+	}
+
+	public static ContentTypeHeader createTXTContentTypeHeader(
+			List<com.mitester.jaxbparser.server.Header> txtheader,
+			ContentTypeHeader contentType_txt, HeaderFactory headerFactory,
+			String type) throws ParseException, IndexOutOfBoundsException,
+			SipException, InvalidArgumentException {
+		for (com.mitester.jaxbparser.server.Header txtHeader : txtheader) {
+			if (SIPHeaders.getSipHeaderfromString(txtHeader.getName()).equals(
+					SIPHeaders.CONTENT_TYPE)) {
+				String array[] = txtHeader.getValue().split(
+						CONTENT_TYPE_SEPARATOR);
+				contentType_txt = headerFactory.createContentTypeHeader(
+						array[0], array[1]);
+				contentType_txt = addParameteToContentTypeHeader(
+						contentType_txt, txtHeader);
+			} else {
+				LOGGER
+						.info("Given Content-Type header in TEXT-BODY tag is Mis-splet");
+				txtmissplet = CustomHeaderHandler.createCustomHeader(txtHeader);
+				String array[] = txtHeader.getValue().split(
+						CONTENT_TYPE_SEPARATOR);
+				contentType_txt = headerFactory.createContentTypeHeader(
+						array[0], array[1]);
+				contentType_txt = addParameteToContentTypeHeader(
+						contentType_txt, txtHeader);
+				misspeltCT = true;
+			}
+		}
+		return contentType_txt;
+	}
+
+	public static ContentTypeHeader createXMLContentTypeHeader(
+			List<com.mitester.jaxbparser.server.Header> xmlheader,
+			ContentTypeHeader contentType_xml, HeaderFactory headerFactory,
+			String type) throws ParseException, IndexOutOfBoundsException,
+			SipException, InvalidArgumentException {
+		for (com.mitester.jaxbparser.server.Header xmlHeader : xmlheader) {
+			if (SIPHeaders.getSipHeaderfromString(xmlHeader.getName()).equals(
+					SIPHeaders.CONTENT_TYPE)) {
+				String array[] = xmlHeader.getValue().split(
+						CONTENT_TYPE_SEPARATOR);
+				contentType_xml = headerFactory.createContentTypeHeader(
+						array[0], array[1]);
+				contentType_xml = addParameteToContentTypeHeader(
+						contentType_xml, xmlHeader);
+			} else {
+				LOGGER
+						.info("Given Content-Type header in XML-BODY tag is Mis-splet");
+				xmlmissplet = CustomHeaderHandler.createCustomHeader(xmlHeader);
+				String array[] = xmlHeader.getValue().split(
+						CONTENT_TYPE_SEPARATOR);
+				contentType_xml = headerFactory.createContentTypeHeader(
+						array[0], array[1]);
+				contentType_xml = addParameteToContentTypeHeader(
+						contentType_xml, xmlHeader);
+				misspeltCT = true;
+			}
+		}
+		return contentType_xml;
+	}
+
+	public static ContentTypeHeader createOthersContentTypeHeader(
+			List<com.mitester.jaxbparser.server.Header> othersheader2,
+			ContentTypeHeader contentType_others, HeaderFactory headerFactory,
+			String type) throws ParseException, IndexOutOfBoundsException,
+			SipException, InvalidArgumentException {
+		for (com.mitester.jaxbparser.server.Header othersHeader : othersheader2) {
+			if (SIPHeaders.getSipHeaderfromString(othersHeader.getName())
+					.equals(SIPHeaders.CONTENT_TYPE)) {
+				String array[] = othersHeader.getValue().split(
+						CONTENT_TYPE_SEPARATOR);
+				contentType_others = headerFactory.createContentTypeHeader(
+						array[0], array[1]);
+				contentType_others = addParameteToContentTypeHeader(
+						contentType_others, othersHeader);
+			} else {
+				LOGGER
+						.info("Given Content-Type header in OTHERS-BODY tag is Mis-splet");
+				othersmissplet = CustomHeaderHandler
+						.createCustomHeader(othersHeader);
+				String array[] = othersHeader.getValue().split(
+						CONTENT_TYPE_SEPARATOR);
+				contentType_others = headerFactory.createContentTypeHeader(
+						array[0], array[1]);
+				contentType_others = addParameteToContentTypeHeader(
+						contentType_others, othersHeader);
+				misspeltCT = true;
+			}
+		}
+		return contentType_others;
 	}
 
 	/**
 	 * adding parameter to content type header
 	 * 
-	 * @param contentType
-	 * @param sdpHeader
-	 * @return
+	 * @param contentType is a content type header object
+	 * @param sdpHeader consists of the content-type headers going to be added with sip message
+	 * @return the Content-Type Header
 	 * @throws ParseException
 	 */
 	public static ContentTypeHeader addParameteToContentTypeHeader(
-	        ContentTypeHeader contentType, Header header) throws ParseException {
-		List<Param> param = header.getParam();
+			ContentTypeHeader contentType,
+			com.mitester.jaxbparser.server.Header sdpHeader2)
+			throws ParseException {
+		LOGGER.info("Adding parameter to the Content-Type header");
+		List<Param> param = sdpHeader2.getParam();
 
 		for (Param parameter : param) {
 			String pname = parameter.getName();
@@ -556,116 +618,15 @@ public class AddContentToSIPMessage {
 	}
 
 	/**
-	 * processFileSdP is used to process sdp body inside a file
+	 * look for the content files
 	 * 
-	 * @param sdpBody
-	 * @return String buffer has a sdp content
-	 */
-	private static StringBuilder processSdpFile(SDPBODY sdpBody) {
-		String filePath;
-		StringBuilder sdpBuf = new StringBuilder();
-		String fileName = sdpBody.getFile().getSource();
-
-		ParseSDPBody parseSdpBody = new ParseSDPBody();
-		try {
-			filePath = FileParsingContent(serverScriptPath, fileName);
-			List<com.mitester.jaxbparser.sdpbody.Sdp> newSdp = parseSdpBody
-			        .ParseSDPBodyFile(filePath);
-			for (com.mitester.jaxbparser.sdpbody.Sdp objNewSDP : newSdp) {
-				if (objNewSDP instanceof Object) {
-					sdpBuf.append(objNewSDP.getName() + EQUALS
-					        + objNewSDP.getValue() + NEWLINE);
-				}
-
-			}
-		} catch (NullPointerException e) {
-
-			e.printStackTrace();
-		} catch (IOException e) {
-
-			e.printStackTrace();
-		} catch (JAXBException e) {
-			e.printStackTrace();
-		}
-		return sdpBuf;
-	}
-
-	private static StringBuilder processTXTFile(TXTBODY txtBody) {
-		StringBuilder txtBuf = new StringBuilder();
-		com.mitester.jaxbparser.server.File file = txtBody.getFile();
-		String fileName = file.getSource();
-		try {
-			String newFileName = FileParsingContent(serverScriptPath, fileName);
-			FileReader readFile = new FileReader(newFileName);
-			BufferedReader readBuf = new BufferedReader(readFile);
-
-			String lineRead = null;
-
-			while ((lineRead = readBuf.readLine()) != null) {
-				lineRead = lineRead.trim();
-				if (lineRead
-				        .startsWith(SERVER_PARSING_ACTION_START_TEXT_SEPARATOR))
-					continue;
-				else if (lineRead
-				        .startsWith(SERVER_PARSING_ACTION_END_TEXT_SEPARATOR))
-					break;
-				else if (lineRead
-				        .startsWith(SERVER_PARSING_ACTION_START_INNER_TXT_SEPARATOR)) {
-					String splitArray[] = lineRead.split(EQUALS);
-					for (int k = 0; k < splitArray.length; k++) {
-						if (splitArray[k]
-						        .startsWith(SERVER_PARSING_ACTION_START_INNER_TXT_SEPARATOR)) {
-							continue;
-						} else {
-							String contents[] = splitArray[k]
-							        .split(SERVER_PARSING_ACTION_ANGLE_SEPARATOR);
-
-							for (int l = 0; l < contents.length; l++) {
-								String[] textContent = contents[l].split("'");
-								txtBuf.append(textContent[1]);
-							}
-							if (k != splitArray.length - 1)
-								txtBuf.append(EQUALS);
-						}
-					}
-					txtBuf.append(NEWLINE);
-				}
-			}
-		} catch (Exception e) {
-
-		}
-		return txtBuf;
-	}
-
-	private static StringBuilder processXMLFile(XMLBODY xmlBody) {
-		StringBuilder xmlBuf = new StringBuilder();
-		String xml = null;
-		try {
-			com.mitester.jaxbparser.server.File file = xmlBody.getFile();
-			String fileName = file.getSource();
-			String newFileName = FileParsingContent(serverScriptPath, fileName);
-			InputStream br = new FileInputStream(newFileName);
-			int size = br.available();
-			byte b[] = new byte[size + 1];
-			br.read(b);
-			xml = new String(b);
-			xmlBuf.append(xml);
-		} catch (Exception e) {
-
-		}
-		return xmlBuf;
-	}
-
-	/**
-	 * searching the content files
-	 * 
-	 * @param serverScriptPath
-	 * @param contentFileName
-	 * @return String
+	 * @param serverScriptPath represents the server script path
+	 * @param contentFileName name of the content file
+	 * @return String represents the path of content file
 	 * @throws ParseException
 	 */
 	public static String FileParsingContent(String serverScriptPath,
-	        String contentFileName) throws IOException, NullPointerException {
+			String contentFileName) throws IOException, NullPointerException {
 
 		File directoryPath = new File(serverScriptPath);
 
@@ -691,7 +652,7 @@ public class AddContentToSIPMessage {
 					testString = null;
 			} else if (new File(newContentPath).isDirectory()) {
 				contentNewPath = FileParsingContent(newContentPath,
-				        contentFileName);
+						contentFileName);
 				if (contentNewPath.endsWith(contentFileName))
 					break;
 				ScriptChildren = directoryPath.list();
@@ -700,22 +661,131 @@ public class AddContentToSIPMessage {
 		return contentNewPath;
 	}
 
-	private static StringBuilder processOthersFile(OTHERSBODY othersBody) {
+	/**
+	 * processFileSdP is used to process sdp body inside a file
+	 * 
+	 * @param sdpBody
+	 * @return String buffer has a sdp content
+	 * @throws IOException
+	 * @throws NullPointerException
+	 * 
+	 */
+	private static StringBuilder processSdpFile(SDPBODY sdpBody)
+			throws NullPointerException, IOException {
+		LOGGER.info("Processing SDP File is started");
+		String filePath;
+		StringBuilder sdpBuf = new StringBuilder();
+		String fileName = sdpBody.getFile().getSource();
+
+		ParseSDPBody parseSdpBody = new ParseSDPBody();
+
+		filePath = FileParsingContent(serverScriptPath, fileName);
+		List<com.mitester.jaxbparser.sdpbody.Sdp> newSdp;
+		try {
+			newSdp = parseSdpBody.ParseSDPBodyFile(filePath);
+
+			for (com.mitester.jaxbparser.sdpbody.Sdp objNewSDP : newSdp) {
+				if (objNewSDP instanceof Object) {
+					sdpBuf.append(objNewSDP.getName() + EQUALS
+							+ objNewSDP.getValue() + NEWLINE);
+				}
+
+			}
+		} catch (JAXBException e) {
+
+		}
+		LOGGER.info("Processing SDP File is ended");
+		return sdpBuf;
+	}
+
+	private static StringBuilder processTXTFile(TXTBODY txtBody)
+			throws NullPointerException, IOException {
+		LOGGER.info("Processing TEXT File is started");
+		StringBuilder txtBuf = new StringBuilder();
+		com.mitester.jaxbparser.server.File file = txtBody.getFile();
+		String fileName = file.getSource();
+
+		String newFileName = FileParsingContent(serverScriptPath, fileName);
+		FileReader readFile = new FileReader(newFileName);
+		BufferedReader readBuf = new BufferedReader(readFile);
+
+		String lineRead = null;
+
+		while ((lineRead = readBuf.readLine()) != null) {
+			lineRead = lineRead.trim();
+			if (lineRead.startsWith(SERVER_PARSING_ACTION_START_TEXT_SEPARATOR))
+				continue;
+			else if (lineRead
+					.startsWith(SERVER_PARSING_ACTION_END_TEXT_SEPARATOR))
+				break;
+			else if (lineRead
+					.startsWith(SERVER_PARSING_ACTION_START_INNER_TXT_SEPARATOR)) {
+				String splitArray[] = lineRead.split(EQUALS);
+				for (int k = 0; k < splitArray.length; k++) {
+					if (splitArray[k]
+							.startsWith(SERVER_PARSING_ACTION_START_INNER_TXT_SEPARATOR)) {
+						continue;
+					} else {
+						String contents[] = splitArray[k]
+								.split(SERVER_PARSING_ACTION_ANGLE_SEPARATOR);
+
+						for (int l = 0; l < contents.length; l++) {
+							String[] textContent = contents[l].split("'");
+							txtBuf.append(textContent[1]);
+						}
+						if (k != splitArray.length - 1)
+							txtBuf.append(EQUALS);
+					}
+				}
+				txtBuf.append(NEWLINE);
+			}
+		}
+
+		LOGGER.info("Processing TEXT File is ended");
+		return txtBuf;
+	}
+
+	private static StringBuilder processXMLFile(XMLBODY xmlBody)
+			throws NullPointerException, IOException {
+		LOGGER.info("Processing XML File is started");
+		StringBuilder xmlBuf = new StringBuilder();
+		String xml = null;
+
+		com.mitester.jaxbparser.server.File file = xmlBody.getFile();
+		String fileName = file.getSource();
+		String newFileName = FileParsingContent(serverScriptPath, fileName);
+		InputStream br = new FileInputStream(newFileName);
+		int size = br.available();
+		byte b[] = new byte[size + 1];
+		br.read(b);
+		xml = new String(b);
+		xmlBuf.append(xml);
+
+		LOGGER.info("Processing XML File is ended");
+		return xmlBuf;
+	}
+
+	private static StringBuilder processOthersFile(OTHERSBODY othersBody)
+			throws NullPointerException, IOException {
+		LOGGER.info("Processing OTHERS File is started");
 		StringBuilder othersBuf = new StringBuilder();
 		String s;
 		com.mitester.jaxbparser.server.File file = othersBody.getFile();
 		String fileName = file.getSource();
-		try {
-			String newFileName = FileParsingContent(serverScriptPath, fileName);
-			InputStream br = new FileInputStream(newFileName);
-			int size = br.available();
-			byte b[] = new byte[size + 1];
-			br.read(b);
-			s = new String(b);
-			othersBuf.append(s);
-		} catch (Exception e) {
 
-		}
+		String newFileName = FileParsingContent(serverScriptPath, fileName);
+		InputStream br = new FileInputStream(newFileName);
+		int size = br.available();
+		byte b[] = new byte[size + 1];
+		br.read(b);
+		s = new String(b);
+		othersBuf.append(s);
+
+		LOGGER.info("Processing OTHERS File is ended");
 		return othersBuf;
+	}
+
+	public static void setIsMisspelt() {
+		misspeltCT = false;
 	}
 }
