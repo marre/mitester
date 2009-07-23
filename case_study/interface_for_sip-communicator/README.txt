@@ -1,6 +1,6 @@
-miTester for SIP - Release Version 1.0
+miTester for SIP - Release Version 2.0
 ---------------------------------------
-Date: February 25th, 2009
+Date: July 20th, 2009
 
 Project Lead/Maintainer (2009-current): Mobax
 
@@ -23,6 +23,10 @@ Notes
 		- tcpinterface.manifest.mf 
                 - TcpInterfaceActivator.java
                 - TcpInterfaceServiceImpl.java
+                - CallEventHandler.java
+                - IncomingCallEventHandler.java
+                - OutgoingCallEventHandler.java
+                - RegisterEventHandler.java
 
 	- GuiCustomControlActivator.java (it must be placed under 'src/net/java/sip/communicator/impl/gui/customcontrols' directory structure of sip-communicator source)
 
@@ -44,10 +48,10 @@ Notes
 
 	- GuiUtilsActivator.java (it must be placed under 'src/net/java/sip/communicator/impl/gui/utils' directory structure of sip-communicator source)
 
-	- sipaccregwizz.manifest.mf (add 'Export-Package: net.java.sip.communicator.plugin.sipaccregwizz' to the file. file path: 'src/net/java/sip/communicator/plugin/sipaccregwizz')
+	- sipaccregwizz.manifest.mf (add 'Export-Package: net.java.sip.communicator.plugin.sipaccregwizz' in the file. file path: 'src/net/java/sip/communicator/plugin/sipaccregwizz')
 
 	- swing.ui.manifest.mf (add 'Export-Package: net.java.sip.communicator.impl.gui.GuiActivator,
- net.java.sip.communicator.impl.gui' to the file. file path: 'src/net/java/sip/communicator/gui')
+ net.java.sip.communicator.impl.gui' in the file. file path: 'src/net/java/sip/communicator/gui')
 
 	- felix.client.run.properties (it must be placed under 'lib' directory structure of sip-communicator source)
 
@@ -58,6 +62,7 @@ Description
 
 miTester for SIP is an open source test automation framework to automate all SIP call flows.
 miTester for SIP is to make testing easy and quick. As the miTester for SIP automation framework executes entirely on XML scripts, both USER and  ADVANCED  modes of testing can be performed on SIP applications. No additional scripting needed for repetitive testing.
+miTester for SIP works on Windows, Linux, MAC and Solaris Platforms.
 
 Comments
 --------------
