@@ -34,8 +34,7 @@
 package com.mitester.utility;
 
 import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
-import org.apache.log4j.helpers.NullEnumeration;
+import org.apache.log4j.xml.DOMConfigurator;
 
 /**
  * This class used to create logger and load the logging properties for the specified class
@@ -43,7 +42,12 @@ import org.apache.log4j.helpers.NullEnumeration;
  */
 
 public class MiTesterLog {
+	
+	static {
 
+		DOMConfigurator.configure("lib/log4j.xml");	
+	}
+	
 	/**
 	 * it creates and returns the logger
 	 * 
@@ -53,10 +57,6 @@ public class MiTesterLog {
 	public static Logger getLogger(String name) {
 		
 		Logger logger = Logger.getLogger(name);
-		
-		if (logger.getAllAppenders() instanceof NullEnumeration ) {
-			PropertyConfigurator.configure("lib/log4j.properties");
-		}
 		return logger;
 	}
 

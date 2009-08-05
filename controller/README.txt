@@ -1,6 +1,6 @@
-miTester for SIP - Release Version 2.0
+miTester for SIP - Release Version 2.1
 ---------------------------------------
-Date: July 20th, 2009
+Date: August 4th, 2009
 
 Project Lead/Maintainer (2009-current): Mobax
 
@@ -24,7 +24,7 @@ Note:
                 - jaxb-xjc-2.0.jar
                 - jsr173_1.0_api.jar
                 - JNetStreamStandalone.jar
-                - log4j.properties
+                - log4j.xml
 		- validateHeader.properties
 
 	- scripts (holds client and server scripts)
@@ -41,7 +41,7 @@ Note:
 		- RTP.pcap (RTP packet)
                 - RTP_BYE.txt (RTP BYE packet)
                 - RTP_RR.txt (RTP RR packet)
-                - RTCP_SDES_wronglength.txt (RTCP SDES packet)
+                - RTCP_SDES.txt (RTCP SDES packet)
 	
         - src
 		- com (holds the source files)

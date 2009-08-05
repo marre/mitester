@@ -89,11 +89,11 @@ public class SipAdapter implements Adapter {
 	private int tcpServerPort = 0;
 
 	private String testApplicationPath = null;
-	
+
 	private ThreadControl threadControl = null;
 
 	public SipAdapter(ThreadControl threadControl) {
-		
+
 		this.threadControl = threadControl;
 
 		if (TEST_MODE.equals("ADVANCED")) {

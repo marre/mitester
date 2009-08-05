@@ -94,11 +94,12 @@ public class MediaPacketHandler {
 
 		for (int i = 0; i < msg.length; i++) {
 
-			if ((msg[i] == '\r') || (msg[i] == '\n') || (msg[i] == ' ')) {
-				continue;
-			} else {
+//			if ((msg[i] == '\r') || (msg[i] == '\n') || (msg[i] == ' ')) {
+			if(Character.isDigit(msg[i])) {
 				tempBuf[j] = msg[i];
 				j++;
+			} else {
+				continue;
 			}
 		}
 

@@ -75,6 +75,7 @@ import com.mitester.utility.ThreadControl;
  */
 
 public class Main {
+	
 
 	private static final Logger LOGGER = MiTesterLog.getLogger(Main.class
 			.getName());

@@ -91,25 +91,25 @@ public class ProcessSIPMessage {
 	 */
 	public static SIPMessage getSIPMessage(String MethodName, String Method,
 			String Type) {
+
+		LOGGER.info("fetching sip message from buffer ");
 		if (Type.equals(SipServerConstants.SERVER_REQUEST)) {
-			if (Method != SipServerConstants.ACK_METHOD) {
-				for (int i = 0; i < sipMessages.size(); i++) {
-					SIPMessage s = (SIPMessage) (sipMessages.get(i)).clone();
-					if (s.getCSeq().getMethod().equals(MethodName)) {
-						sipMessage = s;
-						break;
+			LOGGER.info("fetching sip message for request");
+			for (int i = sipMessages.size() - 1; i > 0; i--) {
+				SIPMessage s = (SIPMessage) sipMessages.get(i).clone();
+				if (s.getCSeq().getMethod().equals(MethodName)) {
+
+					if ((Method != SipServerConstants.ACK_METHOD)
+							&& (s.getFirstLine().startsWith("SIP/2.0"))) {
+						continue;
+
 					}
-				}
-			} else {
-				for (int i = sipMessages.size() - 1; i > 0; i--) {
-					SIPMessage s = (SIPMessage) sipMessages.get(i).clone();
-					if (s.getCSeq().getMethod().equals(MethodName)) {
-						sipMessage = s;
-						break;
-					}
+					sipMessage = s;
+					break;
 				}
 			}
 		} else {
+			LOGGER.info("fetching sip message for response");
 			for (int i = sipMessages.size() - 1; i >= 0; i--) {
 				SIPMessage s = (SIPMessage) sipMessages.get(i).clone();
 				if (s.getCSeq().getMethod().equals(MethodName)) {
@@ -118,6 +118,7 @@ public class ProcessSIPMessage {
 				}
 			}
 		}
+		LOGGER.info("fetching sip message from buffer list is done");
 		return sipMessage;
 	}
 
@@ -384,7 +385,7 @@ public class ProcessSIPMessage {
 					for (OPTIONAL optionalHdr : optionalHdrs) {
 						List<Method> method = optionalHdr.getMethod();
 						for (Method mthd : method) {
-							
+
 							String value = mthd.getValue();
 							if (mthd.getName().value().equals("res")
 									&& value.equals(actionValue)) {
@@ -487,7 +488,7 @@ public class ProcessSIPMessage {
 					+ "_" + sipMessage.getCSeq().getMethod();
 		} else
 			methodName = sipMessage.getCSeq().getMethod();
-		
+
 		return methodName;
 
 	}

@@ -264,7 +264,7 @@
       <xs:sequence>
         <xs:element minOccurs="0" maxOccurs="unbounded" ref="header"/>
         <xs:element minOccurs="0" maxOccurs="unbounded" ref="sdp"/>
-        <xs:element minOccurs="0" ref="file"/>
+        <xs:element minOccurs="0" maxOccurs="1" ref="file"/>
       </xs:sequence>
     </xs:complexType>
   </xs:element>
@@ -292,7 +292,7 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" maxOccurs="unbounded" ref="header"/>
-        <xs:element minOccurs="0" ref="file"/>
+        <xs:element minOccurs="0" maxOccurs="1" ref="file"/>
       </xs:sequence>
     </xs:complexType>
   </xs:element>
@@ -300,7 +300,7 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" maxOccurs="unbounded" ref="header"/>
-        <xs:element minOccurs="0" ref="file"/>
+        <xs:element minOccurs="0" maxOccurs="1" ref="file"/>
       </xs:sequence>
     </xs:complexType>
   </xs:element>
@@ -308,7 +308,7 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element minOccurs="0" maxOccurs="unbounded" ref="header"/>
-        <xs:element minOccurs="0" ref="file"/>
+        <xs:element minOccurs="0" maxOccurs="1" ref="file"/>
       </xs:sequence>
     </xs:complexType>
   </xs:element>

@@ -1,6 +1,6 @@
-miTester for SIP - Release Version 2.0
+miTester for SIP - Release Version 2.1
 ---------------------------------------
-Date: July 20th, 2009
+Date: August 4th, 2009
 
 Project Lead/Maintainer (2009-current): Mobax
 
@@ -51,7 +51,7 @@ Notes
 	- sipaccregwizz.manifest.mf (add 'Export-Package: net.java.sip.communicator.plugin.sipaccregwizz' in the file. file path: 'src/net/java/sip/communicator/plugin/sipaccregwizz')
 
 	- swing.ui.manifest.mf (add 'Export-Package: net.java.sip.communicator.impl.gui.GuiActivator,
- net.java.sip.communicator.impl.gui' in the file. file path: 'src/net/java/sip/communicator/gui')
+ net.java.sip.communicator.impl.gui' in the file. file path: 'src/net/java/sip/communicator/impl/gui')
 
 	- felix.client.run.properties (it must be placed under 'lib' directory structure of sip-communicator source)
 

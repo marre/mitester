@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd" >
+<log4j:configuration>
+	<appender name="mitesterforSIP" class="org.apache.log4j.RollingFileAppender">
+		<param name="File" value="miTesterforSIP.log"/>
+		<param name="MaxFileSize" value="1000KB"/>
+		<param name="MaxBackupIndex" value="3"/>
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="[%d{HH:mm:ss:SSS}] - %-6p - %c.%M() - %m%n"/>
+		</layout>
+	</appender>
+	  <appender name="media" class="org.apache.log4j.ConsoleAppender">
+	     <param name="Threshold" value="FATAL"/>
+	    <layout class="org.apache.log4j.PatternLayout">
+		  <param name="ConversionPattern" value="%d %-5r %-5p [%c] (%t:%x) %m%n"/>
+	    </layout>
+	  </appender>
+	<category name="com.mitester">
+		<appender-ref ref="mitesterforSIP"/>
+	</category>
+        <root>
+		<priority value="all"/>
+		<appender-ref ref="media"/>
+        </root>
+</log4j:configuration>
+

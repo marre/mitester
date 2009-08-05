@@ -51,6 +51,7 @@ import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import com.mitester.utility.MiTesterLog;
 import com.mitester.utility.TestUtility;
+import static com.mitester.utility.ConfigurationProperties.CONFIG_INSTANCE;
 import static com.mitester.sipserver.SipServerConstants.ACK_METHOD;
 import static com.mitester.sipserver.SipServerConstants.BYE_METHOD;
 import static com.mitester.sipserver.SipServerConstants.CANCEL_METHOD;
@@ -108,6 +109,12 @@ public class ParseServerScript {
 	private static final String RTCP = "RTCP";
 
 	private static final String MEDIA = "media";
+
+	private static final String SERVER_SCRIPT_PATH = CONFIG_INSTANCE
+			.getValue("SCRIPT_PATH_MITESTER");
+
+	private static final String CONTENT_PATH = SERVER_SCRIPT_PATH
+			+ "/Content_Files/";
 
 	static {
 		try {
@@ -258,7 +265,7 @@ public class ParseServerScript {
 
 				if (objAction instanceof ACTION) {
 
-					ACTION action = (ACTION) objAction;
+					com.mitester.jaxbparser.server.ACTION action = (ACTION) objAction;
 
 					if (action.getRECV() != null) {
 
@@ -459,8 +466,11 @@ public class ParseServerScript {
 	 * @throws ParserException
 	 */
 	public boolean checkMediaPacketPath(List<TEST> test) throws ParserException {
-		LOGGER.info("Entered into media validation");
 
+		ADDMSG addmsg = null;
+		List<Sdp> sdpList = null;
+
+		LOGGER.info("Entered into media validation");
 		try {
 
 			for (TEST obj : test) {
@@ -486,35 +496,124 @@ public class ParseServerScript {
 												+ ", file source path '"
 												+ mediaFilePath
 												+ "' doesn't exist");
-
 							}
-
 							if (!mediaFilePath.endsWith("txt")
 									&& !mediaFilePath.endsWith("pcap")) {
 								throw new com.mitester.jaxbparser.server.ParserException(
-										"In " + obj.getTESTID()
+										"In "
+												+ obj.getTESTID()
 												+ ", file '"
 												+ mediaFilePath
 												+ "' miTester doesn't support this file extension");
 							}
+						} else if ((send != null)
+								&& ((addmsg = action.getADDMSG()) != null)) {
+							com.mitester.jaxbparser.server.CONTENT content = addmsg
+									.getCONTENT();
 
+							if (content != null) {
+								com.mitester.jaxbparser.server.OTHERSBODY othersbody = content
+										.getOTHERSBODY();
+
+								if (othersbody != null) {
+									String otherbodyfile = othersbody.getFile()
+											.getSource();
+									if (!TestUtility.isFileExist(CONTENT_PATH
+											+ otherbodyfile)) {
+										throw new com.mitester.jaxbparser.server.ParserException(
+												"In "
+														+ obj.getTESTID()
+														+ ", file '"
+														+ otherbodyfile
+														+ "' doesn't available in the 'Content_Files' folder");
+
+									}
+
+								}
+
+								com.mitester.jaxbparser.server.TXTBODY txtbody = content
+										.getTXTBODY();
+
+								if (txtbody != null) {
+									String txtbodyfile = txtbody.getFile()
+											.getSource();
+									if (!TestUtility.isFileExist(CONTENT_PATH
+											+ txtbodyfile)) {
+										throw new com.mitester.jaxbparser.server.ParserException(
+												"In "
+														+ obj.getTESTID()
+														+ ", file '"
+														+ txtbodyfile
+														+ "' doesn't available in the 'Content_Files' folder");
+
+									}
+
+								}
+
+								com.mitester.jaxbparser.server.XMLBODY xmlbody = content
+										.getXMLBODY();
+
+								if (xmlbody != null) {
+									String xmlbodyfile = xmlbody.getFile()
+											.getSource();
+									if (!TestUtility.isFileExist(CONTENT_PATH
+											+ xmlbodyfile)) {
+										throw new com.mitester.jaxbparser.server.ParserException(
+												"In "
+														+ obj.getTESTID()
+														+ ", file '"
+														+ xmlbodyfile
+														+ "' doesn't available in the 'Content_Files' folder");
+
+									}
+
+								}
+
+								com.mitester.jaxbparser.server.SDPBODY sdpbody = content
+										.getSDPBODY();
+
+								if ((sdpbody != null) && (sdpbody.getFile()!= null)) {
+									String sdpbodyfile = sdpbody.getFile()
+											.getSource();
+									sdpList = sdpbody.getSdp();
+									if ((sdpbodyfile != null)
+											&& (sdpList.size() != 0)) {
+										throw new com.mitester.jaxbparser.server.ParserException(
+												"In "
+														+ obj.getTESTID()
+														+ ", both file '"
+														+ sdpbodyfile
+														+ "' and sdp content are present");
+
+									} else if (sdpbodyfile != null) {
+										if (!TestUtility
+												.isFileExist(CONTENT_PATH
+														+ sdpbodyfile)) {
+											throw new com.mitester.jaxbparser.server.ParserException(
+													"In "
+															+ obj.getTESTID()
+															+ ", file '"
+															+ sdpbodyfile
+															+ "' doesn't available in the 'Content_Files' folder");
+
+										}
+									}
+								}
+							}
 						}
-
 					}
-
 				}
-
 			}
 		} catch (com.mitester.jaxbparser.server.ParserException ex) {
 			throw ex;
 		} catch (IOException ex) {
 			throw new com.mitester.jaxbparser.server.ParserException(
-					"error while checking media source path");
+					"error while checking file source path");
 
 		} catch (Exception ex) {
 
 			throw new com.mitester.jaxbparser.server.ParserException(
-					"error while checking media source path");
+					"error while checking file source path");
 
 		}
 

@@ -36,16 +36,13 @@
 package com.mitester.sipserver;
 
 import gov.nist.javax.sip.message.SIPMessage;
-
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.ParseException;
 import java.util.List;
-
 import javax.sip.InvalidArgumentException;
 import javax.sip.SipException;
 import javax.sip.SipFactory;
@@ -55,12 +52,9 @@ import javax.sip.header.HeaderFactory;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 import javax.xml.bind.JAXBException;
-
 import org.apache.log4j.Logger;
-
 import com.mitester.jaxbparser.sdpbody.ParseSDPBody;
 import com.mitester.jaxbparser.server.CONTENT;
-
 import com.mitester.jaxbparser.server.OTHERSBODY;
 import com.mitester.jaxbparser.server.Param;
 import com.mitester.jaxbparser.server.SDPBODY;
@@ -71,7 +65,6 @@ import com.mitester.sipserver.sipheaderhandler.CustomHeaderHandler;
 import com.mitester.sipserver.sipmessagehandler.CANCELRequestHandler;
 import com.mitester.utility.ConfigurationProperties;
 import com.mitester.utility.MiTesterLog;
-import com.mitester.utility.TestUtility;
 
 /**
  * It used to add content to the sip message
@@ -90,7 +83,6 @@ public class AddContentToSIPMessage {
 	private static final String SDP = "sdp";
 	private static final String SEMICOLON = ";";
 	private static final String EQUALS = "=";
-	private static final String ADD_FILES = "/";
 	private static final String SERVER_PARSING_ACTION_ANGLE_SEPARATOR = "/>";
 	private static final String SERVER_PARSING_ACTION_END_TEXT_SEPARATOR = "</TEXT>";
 	private static final String SERVER_PARSING_ACTION_START_TEXT_SEPARATOR = "<TEXT>";
@@ -102,6 +94,8 @@ public class AddContentToSIPMessage {
 	private static Header txtmissplet = null;
 	private static Header xmlmissplet = null;
 	private static Header othersmissplet = null;
+	private static final String FILE_SEPARATOR = "/";
+	private static final String CONTENT_FILE = "Content_Files";
 
 	/**
 	 * This method is used to add a content to the SIP Message
@@ -618,50 +612,6 @@ public class AddContentToSIPMessage {
 	}
 
 	/**
-	 * look for the content files
-	 * 
-	 * @param serverScriptPath represents the server script path
-	 * @param contentFileName name of the content file
-	 * @return String represents the path of content file
-	 * @throws ParseException
-	 */
-	public static String FileParsingContent(String serverScriptPath,
-			String contentFileName) throws IOException, NullPointerException {
-
-		File directoryPath = new File(serverScriptPath);
-
-		String testString = null;
-
-		String contentNewPath = null;
-
-		String ScriptChildren[] = directoryPath.list();
-
-		if (ScriptChildren == null) {
-			TestUtility.printMessage("There is no file exist");
-		}
-
-		for (String script : ScriptChildren) {
-			String newContentPath = serverScriptPath.concat(ADD_FILES + script);
-
-			if (script.equalsIgnoreCase("Content_Files")) {
-				testString = newContentPath + ADD_FILES + contentFileName;
-				File newFile = new File(testString);
-				if (newFile.isFile())
-					return testString;
-				else
-					testString = null;
-			} else if (new File(newContentPath).isDirectory()) {
-				contentNewPath = FileParsingContent(newContentPath,
-						contentFileName);
-				if (contentNewPath.endsWith(contentFileName))
-					break;
-				ScriptChildren = directoryPath.list();
-			}
-		}
-		return contentNewPath;
-	}
-
-	/**
 	 * processFileSdP is used to process sdp body inside a file
 	 * 
 	 * @param sdpBody
@@ -679,7 +629,7 @@ public class AddContentToSIPMessage {
 
 		ParseSDPBody parseSdpBody = new ParseSDPBody();
 
-		filePath = FileParsingContent(serverScriptPath, fileName);
+		filePath = serverScriptPath + FILE_SEPARATOR + CONTENT_FILE + FILE_SEPARATOR + fileName;
 		List<com.mitester.jaxbparser.sdpbody.Sdp> newSdp;
 		try {
 			newSdp = parseSdpBody.ParseSDPBodyFile(filePath);
@@ -704,8 +654,7 @@ public class AddContentToSIPMessage {
 		StringBuilder txtBuf = new StringBuilder();
 		com.mitester.jaxbparser.server.File file = txtBody.getFile();
 		String fileName = file.getSource();
-
-		String newFileName = FileParsingContent(serverScriptPath, fileName);
+		String newFileName = serverScriptPath + FILE_SEPARATOR + CONTENT_FILE + FILE_SEPARATOR + fileName;		 
 		FileReader readFile = new FileReader(newFileName);
 		BufferedReader readBuf = new BufferedReader(readFile);
 
@@ -753,7 +702,7 @@ public class AddContentToSIPMessage {
 
 		com.mitester.jaxbparser.server.File file = xmlBody.getFile();
 		String fileName = file.getSource();
-		String newFileName = FileParsingContent(serverScriptPath, fileName);
+		String newFileName = serverScriptPath + FILE_SEPARATOR + CONTENT_FILE + FILE_SEPARATOR + fileName;
 		InputStream br = new FileInputStream(newFileName);
 		int size = br.available();
 		byte b[] = new byte[size + 1];
@@ -773,7 +722,7 @@ public class AddContentToSIPMessage {
 		com.mitester.jaxbparser.server.File file = othersBody.getFile();
 		String fileName = file.getSource();
 
-		String newFileName = FileParsingContent(serverScriptPath, fileName);
+		String newFileName = serverScriptPath + FILE_SEPARATOR + CONTENT_FILE + FILE_SEPARATOR + fileName;
 		InputStream br = new FileInputStream(newFileName);
 		int size = br.available();
 		byte b[] = new byte[size + 1];
